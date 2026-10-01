@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.Macro_tracker" parent="Theme.MaterialComponents.Light" />
+</resources>

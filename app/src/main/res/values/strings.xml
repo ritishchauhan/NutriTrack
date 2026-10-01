@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Nutritrack</string>
+    <!-- Paste your OAuth 2.0 Web Client ID from Firebase Console > Authentication > Google > Web SDK configuration -->
+    <string name="default_web_client_id" translatable="false">23873693502-oeau5fvk95r1430oo4jlbb2acvua71q0.apps.googleusercontent.com</string>
+</resources>
