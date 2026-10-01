@@ -73,6 +73,7 @@ fun DashboardScreen(
     val formattedDate = selectedDate.format(dateFormatter)
 
     var itemToDelete by remember { mutableStateOf<FoodLogEntity?>(null) }
+    var showDeleteAllConfirm by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showOnboardingDialog by remember { mutableStateOf(false) }
 
@@ -303,6 +304,67 @@ fun DashboardScreen(
             dismissButton = {
                 TextButton(onClick = { itemToDelete = null }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAllConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllConfirm = false },
+            containerColor = NutritrackSurface,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(ErrorRed.copy(alpha = 0.12f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteOutline,
+                        contentDescription = null,
+                        tint = ErrorRed,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Delete All Meals?",
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete all ${dailyLogs.size} logged meals for $formattedDate in a single click? This cannot be undone.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        foodViewModel.deleteFoodLogsForDate(selectedDate)
+                        showDeleteAllConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ErrorRed,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Delete All", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteAllConfirm = false },
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Cancel", color = TextSecondary)
                 }
             }
         )
@@ -843,26 +905,57 @@ fun DashboardScreen(
                         color = TextPrimary
                     )
 
-                    Button(
-                        onClick = onNavigateToLog,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NutritrackDark,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.height(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Add meal",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                        )
+                        if (dailyLogs.isNotEmpty()) {
+                            FilledTonalButton(
+                                onClick = { showDeleteAllConfirm = true },
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = ErrorRed.copy(alpha = 0.12f),
+                                    contentColor = ErrorRed
+                                ),
+                                shape = RoundedCornerShape(20.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteOutline,
+                                    contentDescription = "Delete All",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = ErrorRed
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Delete All",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = ErrorRed
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = onNavigateToLog,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NutritrackDark,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Add meal",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
                     }
                 }
             }

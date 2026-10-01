@@ -47,6 +47,7 @@ interface FoodRepository {
         date: LocalDate
     )
     suspend fun deleteFoodLog(foodLog: FoodLogEntity)
+    suspend fun deleteFoodLogsForDate(date: LocalDate)
     suspend fun clearAllFoodLogs()
     suspend fun deleteAccountMeals(userId: String): Result<Unit>
     suspend fun syncRemoteMeals(): Result<Unit>
@@ -390,6 +391,20 @@ class FoodRepositoryImpl(
             neonApiClient.deleteMeal(uid, target)
             try {
                 firestoreRepository.deleteFoodLog(uid, target.id, target.timestamp, target.foodName)
+            } catch (ignored: Exception) {}
+        }
+        Unit
+    }
+
+    override suspend fun deleteFoodLogsForDate(date: LocalDate): Unit = withContext(ioDispatcher) {
+        val uid = getAuthenticatedUserId() ?: return@withContext
+        val startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+        foodLogDao.deleteFoodLogsByDateRange(uid, startOfDay, endOfDay)
+        repositoryScope.launch {
+            neonApiClient.deleteMealsByDateRange(uid, startOfDay, endOfDay)
+            try {
+                firestoreRepository.deleteFoodLogsByDateRange(uid, startOfDay, endOfDay)
             } catch (ignored: Exception) {}
         }
         Unit

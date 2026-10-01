@@ -33,6 +33,9 @@ interface FoodLogDao {
     @Delete
     suspend fun deleteFoodLog(foodLog: FoodLogEntity)
 
+    @Query("DELETE FROM food_logs WHERE userId = :userId AND timestamp >= :startOfDay AND timestamp <= :endOfDay")
+    suspend fun deleteFoodLogsByDateRange(userId: String, startOfDay: Long, endOfDay: Long)
+
     @Query("DELETE FROM food_logs WHERE userId = :userId")
     suspend fun deleteAllFoodLogsForUser(userId: String)
 
