@@ -29,6 +29,8 @@
 
 # Firebase & Play Services
 -keepattributes *Annotation*
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }
 -keepclassmembers class * {
     @com.google.firebase.firestore.* <fields>;
     @com.google.firebase.firestore.* <methods>;
