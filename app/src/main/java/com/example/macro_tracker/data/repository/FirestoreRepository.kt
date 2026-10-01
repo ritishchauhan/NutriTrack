@@ -116,6 +116,7 @@ class FirestoreRepositoryImpl(
                 "carbs" to foodLog.carbs.toDouble(),
                 "fat" to foodLog.fat.toDouble(),
                 "fiber" to foodLog.fiber.toDouble(),
+                "servings" to foodLog.servings,
                 "timestamp" to foodLog.timestamp,
                 "mealType" to foodLog.mealType,
                 "details" to foodLog.details,
@@ -259,6 +260,7 @@ class FirestoreRepositoryImpl(
                     val carbs = (doc.getDouble("carbs") ?: 0.0).toFloat()
                     val fat = (doc.getDouble("fat") ?: 0.0).toFloat()
                     val fiber = (doc.getDouble("fiber") ?: 0.0).toFloat()
+                    val servings = (doc.getLong("servings") ?: 1L).toInt().coerceAtLeast(1)
                     val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                     val mealType = doc.getString("mealType") ?: "Breakfast"
                     val details = doc.getString("details") ?: ""
@@ -272,6 +274,7 @@ class FirestoreRepositoryImpl(
                         carbs = carbs,
                         fat = fat,
                         fiber = fiber,
+                        servings = servings,
                         timestamp = timestamp,
                         mealType = mealType,
                         details = details

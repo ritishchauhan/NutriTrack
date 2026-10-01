@@ -174,6 +174,7 @@ class NeonApiClient(
                 carbs = EXCLUDED.carbs,
                 fat = EXCLUDED.fat,
                 fiber = EXCLUDED.fiber,
+                portion_multiplier = EXCLUDED.portion_multiplier,
                 meal_type = EXCLUDED.meal_type,
                 details = EXCLUDED.details,
                 logged_at = EXCLUDED.logged_at;
@@ -188,7 +189,7 @@ class NeonApiClient(
             meal.carbs.toDouble(),
             meal.fat.toDouble(),
             meal.fiber.toDouble(),
-            1.0,
+            meal.servings.toDouble().coerceAtLeast(1.0),
             meal.mealType,
             "",
             "",
@@ -234,7 +235,7 @@ class NeonApiClient(
                     params.add(meal.carbs.toDouble())
                     params.add(meal.fat.toDouble())
                     params.add(meal.fiber.toDouble())
-                    params.add(1.0)
+                    params.add(meal.servings.toDouble().coerceAtLeast(1.0))
                     params.add(meal.mealType)
                     params.add("")
                     params.add("")
@@ -255,6 +256,7 @@ class NeonApiClient(
                         carbs = EXCLUDED.carbs,
                         fat = EXCLUDED.fat,
                         fiber = EXCLUDED.fiber,
+                        portion_multiplier = EXCLUDED.portion_multiplier,
                         meal_type = EXCLUDED.meal_type,
                         details = EXCLUDED.details,
                         logged_at = EXCLUDED.logged_at;
@@ -284,7 +286,7 @@ class NeonApiClient(
      */
     suspend fun fetchMeals(userId: String): Result<List<FoodLogEntity>> = withContext(Dispatchers.IO) {
         try {
-            val query = "SELECT food_name, calories, protein, carbs, fat, fiber, meal_type, logged_at, details FROM tracked_meals WHERE user_id = $1 ORDER BY logged_at DESC;"
+            val query = "SELECT food_name, calories, protein, carbs, fat, fiber, portion_multiplier, meal_type, logged_at, details FROM tracked_meals WHERE user_id = $1 ORDER BY logged_at DESC;"
             val result = executeQuery(query, listOf(userId))
             if (result.isFailure) {
                 return@withContext Result.failure(result.exceptionOrNull()!!)
@@ -304,6 +306,7 @@ class NeonApiClient(
                     carbs = row.optDouble("carbs", 0.0).toFloat(),
                     fat = row.optDouble("fat", 0.0).toFloat(),
                     fiber = row.optDouble("fiber", 0.0).toFloat(),
+                    servings = row.optDouble("portion_multiplier", 1.0).toInt().coerceAtLeast(1),
                     mealType = row.optString("meal_type", "Breakfast"),
                     timestamp = row.optLong("logged_at", System.currentTimeMillis()),
                     details = row.optString("details", "")
