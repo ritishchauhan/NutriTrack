@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "23873693502",
+    "firebase_url": "https://nutritrack-e5534-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "nutritrack-e5534",
     "storage_bucket": "nutritrack-e5534.firebasestorage.app"
   },
@@ -12,7 +13,28 @@
           "package_name": "com.example.macro_tracker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "23873693502-2uhc3ta6dhsg823p57utc5md5sgf4elc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.macro_tracker",
+            "certificate_hash": "da4a15eabf8ebe6c273421f2d2efb3a9f9fac120"
+          }
+        },
+        {
+          "client_id": "23873693502-as5jmdejjdp5gcr0991uk6hc2m3h7ni5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.macro_tracker",
+            "certificate_hash": "14e23c78ba09da5d69793c11d837c00938276ca1"
+          }
+        },
+        {
+          "client_id": "23873693502-oeau5fvk95r1430oo4jlbb2acvua71q0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBIYE4WHrAXsNA_tOWkTLl4Tr_vw9_BXWw"
@@ -20,7 +42,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "23873693502-oeau5fvk95r1430oo4jlbb2acvua71q0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
