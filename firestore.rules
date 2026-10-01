@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required, immutable) - Auth UID
+    //   - email: string (optional, max 120 chars, valid email)
+    //   - phoneNumber: string (optional, max 25 chars)
+    //   - displayName: string (optional, max 100 chars)
+    //   - calorieGoal: number (optional, 0..15000)
+    //   - proteinGoal: number (optional, 0..1000)
+    //   - carbsGoal: number (optional, 0..2000)
+    //   - fatGoal: number (optional, 0..1000)
+    //   - fiberGoal: number (optional, 0..500)
+    //   - waterGoal: number (optional, 0..20)
+    //   - waterLogged: number (optional, 0..50)
+    //   - streakDays: number (optional, 0..10000)
+    //   - userWeightKg: number (optional, 10..500)
+    //   - userHeightCm: number (optional, 30..300)
+    //   - userFitnessGoal: string (optional, max 50 chars)
+    //   - activityLevel: string (optional, max 50 chars)
+    //   - dietaryPreference: string (optional, max 50 chars)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Subcollection: users/{userId}/food_logs
+    // Document ID: {logId}
+    // Fields:
+    //   - id: number (required)
+    //   - foodName: string (required, 1..200 chars)
+    //   - calories: number (required, 0..20000)
+    //   - protein: number (required, 0..2000)
+    //   - carbs: number (required, 0..3000)
+    //   - fat: number (required, 0..2000)
+    //   - fiber: number (optional, 0..500)
+    //   - timestamp: number (required, > 0)
+    //   - mealType: string (required, max 50 chars)
+    //   - details: string (optional, max 1000 chars)
+    //   - userId: string (required, matches {userId})
+    //
+    // ===============================================================
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.size() <= 120 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUserProfile(data) {
+      return (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+        (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 25)) &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('calorieGoal' in data) || (data.calorieGoal is number && data.calorieGoal >= 0 && data.calorieGoal <= 15000)) &&
+        (!('proteinGoal' in data) || (data.proteinGoal is number && data.proteinGoal >= 0 && data.proteinGoal <= 1000)) &&
+        (!('carbsGoal' in data) || (data.carbsGoal is number && data.carbsGoal >= 0 && data.carbsGoal <= 2000)) &&
+        (!('fatGoal' in data) || (data.fatGoal is number && data.fatGoal >= 0 && data.fatGoal <= 1000)) &&
+        (!('fiberGoal' in data) || (data.fiberGoal is number && data.fiberGoal >= 0 && data.fiberGoal <= 500)) &&
+        (!('waterGoal' in data) || (data.waterGoal is number && data.waterGoal >= 0 && data.waterGoal <= 20)) &&
+        (!('waterLogged' in data) || (data.waterLogged is number && data.waterLogged >= 0 && data.waterLogged <= 50)) &&
+        (!('streakDays' in data) || (data.streakDays is number && data.streakDays >= 0)) &&
+        (!('userWeightKg' in data) || (data.userWeightKg is number && data.userWeightKg >= 10 && data.userWeightKg <= 500)) &&
+        (!('userHeightCm' in data) || (data.userHeightCm is number && data.userHeightCm >= 30 && data.userHeightCm <= 300)) &&
+        (!('userFitnessGoal' in data) || (data.userFitnessGoal is string && data.userFitnessGoal.size() <= 50)) &&
+        (!('activityLevel' in data) || (data.activityLevel is string && data.activityLevel.size() <= 50)) &&
+        (!('dietaryPreference' in data) || (data.dietaryPreference is string && data.dietaryPreference.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is number || data.updatedAt is timestamp);
+    }
+
+    function isValidFoodLog(data, userId) {
+      return data.keys().hasAll(['id', 'foodName', 'calories', 'protein', 'carbs', 'fat', 'timestamp', 'mealType', 'userId']) &&
+        data.foodName is string && data.foodName.size() >= 1 && data.foodName.size() <= 200 &&
+        data.calories is number && data.calories >= 0 && data.calories <= 20000 &&
+        data.protein is number && data.protein >= 0 && data.protein <= 2000 &&
+        data.carbs is number && data.carbs >= 0 && data.carbs <= 3000 &&
+        data.fat is number && data.fat >= 0 && data.fat <= 2000 &&
+        data.timestamp is number && data.timestamp > 0 &&
+        data.mealType is string && data.mealType.size() <= 50 &&
+        data.userId == userId &&
+        (!('fiber' in data) || (data.fiber is number && data.fiber >= 0 && data.fiber <= 500)) &&
+        (!('details' in data) || (data.details is string && data.details.size() <= 1000));
+    }
+
+    // Match user root document
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && uidUnchanged() && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && uidNotModified() && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      // Match user food logs subcollection
+      match /food_logs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidFoodLog(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidFoodLog(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
