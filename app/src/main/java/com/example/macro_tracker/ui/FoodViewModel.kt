@@ -292,6 +292,12 @@ class FoodViewModel(
         }
     }
 
+    fun deleteFoodLogsForDate(date: LocalDate = _selectedDate.value) {
+        viewModelScope.launch {
+            foodRepository.deleteFoodLogsForDate(date)
+        }
+    }
+
     fun clearAllFoodLogs() {
         viewModelScope.launch {
             foodRepository.clearAllFoodLogs()

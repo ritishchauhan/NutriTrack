@@ -69,6 +69,10 @@ class MealCloudSyncRulesTest {
                 localMealDb.removeAll { it.id == foodLog.id && it.userId == foodLog.userId }
             }
 
+            override suspend fun deleteFoodLogsByDateRange(userId: String, startOfDay: Long, endOfDay: Long) {
+                localMealDb.removeAll { it.userId == userId && it.timestamp in startOfDay..endOfDay }
+            }
+
             override suspend fun deleteAllFoodLogsForUser(userId: String) {
                 localMealDb.removeAll { it.userId == userId }
             }
@@ -93,6 +97,11 @@ class MealCloudSyncRulesTest {
 
             override suspend fun deleteFoodLog(userId: String, logId: Int, timestamp: Long, foodName: String): Result<Unit> {
                 cloudMealDb[userId]?.removeAll { it.id == logId }
+                return Result.success(Unit)
+            }
+
+            override suspend fun deleteFoodLogsByDateRange(userId: String, startOfDay: Long, endOfDay: Long): Result<Unit> {
+                cloudMealDb[userId]?.removeAll { it.timestamp in startOfDay..endOfDay }
                 return Result.success(Unit)
             }
 

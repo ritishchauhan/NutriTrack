@@ -21,6 +21,7 @@ interface FirestoreRepository {
     suspend fun getUserProfile(userId: String): Result<Map<String, Any>?>
     suspend fun syncFoodLog(userId: String, foodLog: FoodLogEntity): Result<Unit>
     suspend fun deleteFoodLog(userId: String, logId: Int, timestamp: Long = 0L, foodName: String = ""): Result<Unit>
+    suspend fun deleteFoodLogsByDateRange(userId: String, startOfDay: Long, endOfDay: Long): Result<Unit>
     suspend fun clearUserFoodLogs(userId: String): Result<Unit>
     suspend fun getUserFoodLogs(userId: String): Result<List<FoodLogEntity>>
     suspend fun syncAllFoodLogsToFirestore(userId: String, foodLogs: List<FoodLogEntity>): Result<Unit>
@@ -200,6 +201,40 @@ class FirestoreRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing user food logs from Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteFoodLogsByDateRange(
+        userId: String,
+        startOfDay: Long,
+        endOfDay: Long
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        }
+        try {
+            val logsRef = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(FOOD_LOGS_COLLECTION)
+
+            val snapshot = logsRef
+                .whereGreaterThanOrEqualTo("timestamp", startOfDay)
+                .whereLessThanOrEqualTo("timestamp", endOfDay)
+                .get()
+                .await()
+
+            snapshot.documents.chunked(450).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
+            }
+            Log.d(TAG, "Deleted food logs in date range from Firestore for $userId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting food logs in date range from Firestore", e)
             Result.failure(e)
         }
     }

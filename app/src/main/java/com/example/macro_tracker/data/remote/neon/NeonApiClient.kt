@@ -360,6 +360,25 @@ class NeonApiClient(
     }
 
     /**
+     * Deletes meals in a specific timestamp date range for a user from Neon Postgres.
+     */
+    suspend fun deleteMealsByDateRange(userId: String, startOfDay: Long, endOfDay: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val query = "DELETE FROM tracked_meals WHERE user_id = $1 AND logged_at >= $2 AND logged_at <= $3;"
+            val res = executeQuery(query, listOf(userId, startOfDay, endOfDay))
+            if (res.isSuccess) {
+                Log.d(TAG, "Deleted meals for date range from Neon for user $userId")
+                Result.success(Unit)
+            } else {
+                Result.failure(res.exceptionOrNull() ?: IOException("Failed to delete meals for date range"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting meals for date range from Neon", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Synchronizes user profile targets and health preferences to Neon.
      * Guarantees all data is strictly associated with userId.
      * Uses non-destructive conditional UPSERT so partial updates (e.g. updating name or single target)

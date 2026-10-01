@@ -219,6 +219,7 @@ class NutritionAndSearchTest {
         override fun getFoodLogsSince(userId: String, sinceTimestamp: Long) = flowOf(emptyList<FoodLogEntity>())
         override suspend fun getCount(userId: String): Int = 0
         override suspend fun deleteFoodLog(foodLog: FoodLogEntity) {}
+        override suspend fun deleteFoodLogsByDateRange(userId: String, startOfDay: Long, endOfDay: Long) {}
         override suspend fun deleteAllFoodLogsForUser(userId: String) {}
         override suspend fun deleteAllFoodLogs() {}
     }
