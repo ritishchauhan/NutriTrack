@@ -1031,7 +1031,17 @@ fun DashboardScreen(
                 ) { log ->
                     DashboardMealItem(
                         log = log,
-                        onClick = { itemToDelete = log }
+                        onClick = { itemToDelete = log },
+                        onIncrement = {
+                            foodViewModel.updateMealServings(log, log.servings + 1)
+                        },
+                        onDecrement = {
+                            if (log.servings > 1) {
+                                foodViewModel.updateMealServings(log, log.servings - 1)
+                            } else {
+                                itemToDelete = log
+                            }
+                        }
                     )
                 }
             }
@@ -1101,7 +1111,9 @@ fun MacroCard(
 @Composable
 fun DashboardMealItem(
     log: FoodLogEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
 ) {
     val (iconBg, iconTint, iconVector) = when (log.mealType.lowercase()) {
         "breakfast" -> Triple(MealYellowBg, MealYellowIcon, Icons.Rounded.WbSunny)
@@ -1120,13 +1132,13 @@ fun DashboardMealItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(iconBg)
             ) {
@@ -1138,7 +1150,7 @@ fun DashboardMealItem(
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1157,25 +1169,24 @@ fun DashboardMealItem(
                 )
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "${log.calories} kcal",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    ),
-                    color = TextPrimary
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = TextMuted,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+            Spacer(modifier = Modifier.width(6.dp))
+
+            ServingCounterPill(
+                servings = log.servings.coerceAtLeast(1),
+                onIncrement = onIncrement,
+                onDecrement = onDecrement
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Text(
+                text = "${log.calories} kcal",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                ),
+                color = TextPrimary
+            )
         }
     }
 }

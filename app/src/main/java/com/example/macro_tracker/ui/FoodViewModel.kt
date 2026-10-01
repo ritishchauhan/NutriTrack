@@ -286,6 +286,16 @@ class FoodViewModel(
         }
     }
 
+    fun updateMealServings(foodLog: FoodLogEntity, newServings: Int) {
+        viewModelScope.launch {
+            if (newServings <= 0) {
+                foodRepository.deleteFoodLog(foodLog)
+            } else {
+                foodRepository.updateMealServings(foodLog, newServings)
+            }
+        }
+    }
+
     fun deleteFoodLog(foodLog: FoodLogEntity) {
         viewModelScope.launch {
             foodRepository.deleteFoodLog(foodLog)

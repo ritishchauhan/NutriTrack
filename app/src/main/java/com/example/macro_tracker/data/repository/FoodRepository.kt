@@ -46,6 +46,7 @@ interface FoodRepository {
         details: String,
         date: LocalDate
     )
+    suspend fun updateMealServings(foodLog: FoodLogEntity, newServings: Int)
     suspend fun deleteFoodLog(foodLog: FoodLogEntity)
     suspend fun deleteFoodLogsForDate(date: LocalDate)
     suspend fun clearAllFoodLogs()
@@ -377,6 +378,42 @@ class FoodRepositoryImpl(
             details = details
         )
         insertFoodLog(entity)
+        Unit
+    }
+
+    override suspend fun updateMealServings(foodLog: FoodLogEntity, newServings: Int): Unit = withContext(ioDispatcher) {
+        val uid = getAuthenticatedUserId() ?: return@withContext
+        if (foodLog.userId.isNotBlank() && foodLog.userId != uid) {
+            throw SecurityException("Unauthorized: Cannot update meal belonging to another user.")
+        }
+        val safeCurrentServings = if (foodLog.servings > 0) foodLog.servings else 1
+        val targetServings = newServings.coerceAtLeast(1)
+        if (safeCurrentServings == targetServings) return@withContext
+
+        val ratio = targetServings.toFloat() / safeCurrentServings.toFloat()
+        val updatedCalories = kotlin.math.round(foodLog.calories * ratio).toInt().coerceAtLeast(0)
+        val updatedProtein = (foodLog.protein * ratio).coerceAtLeast(0f)
+        val updatedCarbs = (foodLog.carbs * ratio).coerceAtLeast(0f)
+        val updatedFat = (foodLog.fat * ratio).coerceAtLeast(0f)
+        val updatedFiber = (foodLog.fiber * ratio).coerceAtLeast(0f)
+
+        val updatedLog = foodLog.copy(
+            userId = uid,
+            calories = updatedCalories,
+            protein = updatedProtein,
+            carbs = updatedCarbs,
+            fat = updatedFat,
+            fiber = updatedFiber,
+            servings = targetServings
+        )
+
+        foodLogDao.insertFoodLog(updatedLog)
+        repositoryScope.launch {
+            neonApiClient.uploadSingleMeal(uid, updatedLog)
+            try {
+                firestoreRepository.syncFoodLog(uid, updatedLog)
+            } catch (ignored: Exception) {}
+        }
         Unit
     }
 

@@ -25,5 +25,6 @@ data class FoodLogEntity(
     val timestamp: Long,
     val mealType: String = "Breakfast",
     val details: String = "",
-    val fiber: Float = 0f
+    val fiber: Float = 0f,
+    val servings: Int = 1
 )
