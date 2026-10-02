@@ -1,0 +1,108 @@
+mutation UpsertUserProfile(
+  $userId: String!,
+  $name: String,
+  $email: String,
+  $calorieTarget: Int!,
+  $proteinTarget: Int!,
+  $carbsTarget: Int!,
+  $fatTarget: Int!,
+  $fiberTarget: Int!,
+  $waterTarget: Float!,
+  $waterLogged: Float!,
+  $streakDays: Int!,
+  $weightKg: Float!,
+  $heightCm: Float!,
+  $fitnessGoal: String!,
+  $dietaryPreference: String,
+  $activityLevel: String
+) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  userProfile_upsert(data: {
+    userId: $userId,
+    name: $name,
+    email: $email,
+    calorieTarget: $calorieTarget,
+    proteinTarget: $proteinTarget,
+    carbsTarget: $carbsTarget,
+    fatTarget: $fatTarget,
+    fiberTarget: $fiberTarget,
+    waterTarget: $waterTarget,
+    waterLogged: $waterLogged,
+    streakDays: $streakDays,
+    weightKg: $weightKg,
+    heightCm: $heightCm,
+    fitnessGoal: $fitnessGoal,
+    dietaryPreference: $dietaryPreference,
+    activityLevel: $activityLevel,
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation CreateFoodLog(
+  $userId: String!,
+  $foodName: String!,
+  $calories: Float!,
+  $protein: Float!,
+  $carbs: Float!,
+  $fat: Float!,
+  $fiber: Float!,
+  $portionMultiplier: Float!,
+  $mealType: String!,
+  $barcode: String,
+  $imageUrl: String,
+  $timestamp: Timestamp!,
+  $details: String!
+) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  foodLog_insert(data: {
+    user: { userId: $userId },
+    foodName: $foodName,
+    calories: $calories,
+    protein: $protein,
+    carbs: $carbs,
+    fat: $fat,
+    fiber: $fiber,
+    portionMultiplier: $portionMultiplier,
+    mealType: $mealType,
+    barcode: $barcode,
+    imageUrl: $imageUrl,
+    timestamp: $timestamp,
+    details: $details
+  })
+}
+
+mutation DeleteFoodLog($id: UUID!) @auth(level: USER, insecureReason: "User authenticated; record UUID verified") {
+  foodLog_delete(id: $id)
+}
+
+mutation CreateWeightLog(
+  $userId: String!,
+  $weightKg: Float!,
+  $timestamp: Timestamp!,
+  $note: String!
+) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  weightLog_insert(data: {
+    user: { userId: $userId },
+    weightKg: $weightKg,
+    timestamp: $timestamp,
+    note: $note
+  })
+}
+
+mutation UpdateWeightLog(
+  $id: UUID!,
+  $weightKg: Float!,
+  $timestamp: Timestamp!,
+  $note: String!
+) @auth(level: USER, insecureReason: "User authenticated; record UUID verified") {
+  weightLog_update(
+    id: $id,
+    data: {
+      weightKg: $weightKg,
+      timestamp: $timestamp,
+      note: $note
+    }
+  )
+}
+
+mutation DeleteWeightLog($id: UUID!) @auth(level: USER, insecureReason: "User authenticated; record UUID verified") {
+  weightLog_delete(id: $id)
+}

@@ -59,7 +59,7 @@ interface FoodRepository {
 
 /**
  * Concrete implementation of [FoodRepository] coordinating local database, remote nutrition API,
- * and Neon Cloud Postgres backend synchronization with strict User ID isolation.
+ * and Cloud Firestore / Firebase SQL Connect backend synchronization with strict User ID isolation.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FoodRepositoryImpl(

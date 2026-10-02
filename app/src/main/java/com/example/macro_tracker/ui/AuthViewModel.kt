@@ -51,7 +51,7 @@ class AuthViewModel(
     private val _authState = MutableStateFlow(AuthUiState())
     val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
 
-    // Neon Server Connection Diagnostics
+    // Cloud Server Connection Diagnostics
     private val _serverLatency = MutableStateFlow<Long?>(null)
     val serverLatency: StateFlow<Long?> = _serverLatency.asStateFlow()
 

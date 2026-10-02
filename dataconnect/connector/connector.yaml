@@ -1,0 +1,5 @@
+connectorId: "nutritrack-connector"
+generate:
+  kotlinSdk:
+    outputDir: "../../app/src/main/java"
+    package: "com.example.macro_tracker.dataconnect"

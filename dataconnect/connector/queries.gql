@@ -1,0 +1,65 @@
+query GetUserProfile($userId: String!) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  userProfile(key: { userId: $userId }) {
+    userId
+    name
+    email
+    calorieTarget
+    proteinTarget
+    carbsTarget
+    fatTarget
+    fiberTarget
+    waterTarget
+    waterLogged
+    streakDays
+    weightKg
+    heightCm
+    fitnessGoal
+    dietaryPreference
+    activityLevel
+    updatedAt
+  }
+}
+
+query ListFoodLogs($userId: String!) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  foodLogs(where: { user: { userId: { eq: $userId } } }, orderBy: [{ timestamp: DESC }]) {
+    id
+    foodName
+    calories
+    protein
+    carbs
+    fat
+    fiber
+    portionMultiplier
+    mealType
+    barcode
+    imageUrl
+    timestamp
+    details
+  }
+}
+
+query ListWeightLogs($userId: String!) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  weightLogs(where: { user: { userId: { eq: $userId } } }, orderBy: [{ timestamp: DESC }]) {
+    id
+    weightKg
+    timestamp
+    note
+  }
+}
+
+query ListActivityMetrics($userId: String!) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  activityMetrics(where: { user: { userId: { eq: $userId } } }, orderBy: [{ date: DESC }]) {
+    id
+    recordType
+    value
+    date
+  }
+}
+
+query ListHydrationLogs($userId: String!) @auth(expr: "auth != null && auth.uid == vars.userId") {
+  hydrationLogs(where: { user: { userId: { eq: $userId } } }, orderBy: [{ timestamp: DESC }]) {
+    id
+    amountLiters
+    timestamp
+  }
+}

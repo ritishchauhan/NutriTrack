@@ -1,0 +1,55 @@
+type UserProfile @table(key: "userId") {
+  userId: String! @default(expr: "auth.uid")
+  name: String
+  email: String
+  calorieTarget: Int!
+  proteinTarget: Int!
+  carbsTarget: Int!
+  fatTarget: Int!
+  fiberTarget: Int!
+  waterTarget: Float!
+  waterLogged: Float!
+  streakDays: Int!
+  weightKg: Float!
+  heightCm: Float!
+  fitnessGoal: String!
+  dietaryPreference: String
+  activityLevel: String
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type FoodLog @table {
+  user: UserProfile!
+  foodName: String!
+  calories: Float!
+  protein: Float!
+  carbs: Float!
+  fat: Float!
+  fiber: Float!
+  portionMultiplier: Float!
+  mealType: String!
+  barcode: String
+  imageUrl: String
+  timestamp: Timestamp!
+  details: String!
+}
+
+type WeightLog @table {
+  user: UserProfile!
+  weightKg: Float!
+  timestamp: Timestamp!
+  note: String!
+}
+
+type ActivityMetric @table {
+  user: UserProfile!
+  recordType: String!
+  value: Float!
+  date: Date!
+}
+
+type HydrationLog @table {
+  user: UserProfile!
+  amountLiters: Float!
+  timestamp: Timestamp!
+}
