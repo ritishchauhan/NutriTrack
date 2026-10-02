@@ -632,52 +632,82 @@ fun DietPlansScreen(
                 }
             }
 
-            // Plan Summary Banner
+            // Plan Summary Banner (Step 4 Recommended Plan)
             item {
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = NutritrackDark,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BrandGreen.copy(alpha = 0.3f)),
+                    shadowElevation = 4.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = currentPlan.title,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontFamily = OutfitFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
-                                ),
-                                color = Color.White
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BrandGreen.copy(alpha = 0.18f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Verified,
+                                    contentDescription = null,
+                                    tint = BrandGreen,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "RECOMMENDED DIET PLAN",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = BrandGreen
+                                )
+                            }
+
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = BrandGreen
                             ) {
                                 Text(
                                     text = "${currentPlan.totalCalories} kcal/day",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                     color = Color.White,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = currentPlan.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontFamily = OutfitFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            ),
+                            color = Color.White
+                        )
+
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
                             text = currentPlan.subtitle,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                            color = Color.White.copy(alpha = 0.8f)
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
+                            color = Color.White.copy(alpha = 0.82f)
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                        // Target Macros Row
+                        // Target Macros Row with elegant cards
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1278,7 +1308,7 @@ fun TargetNutritionCard(
             "Hypertrophy: 2.1 g/kg (anchored with leucine-rich dense protein)"
         )
         FitnessGoal.GAIN_WEIGHT -> Pair(
-            "Mass Forge: 38 kcal/kg (clean caloric surplus for mass)",
+            "Clean Surplus: 38 kcal/kg (clean caloric surplus for mass)",
             "Growth Support: 1.8 g/kg (paired with high-density healthy carbs & fats)"
         )
     }
@@ -1295,7 +1325,7 @@ fun TargetNutritionCard(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Calculated from The Vegetarian Forge Blueprint calibrated to your body metrics",
+            text = "Scientifically calculated based on your weight, height, and activity level",
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
             color = TextSecondary
         )

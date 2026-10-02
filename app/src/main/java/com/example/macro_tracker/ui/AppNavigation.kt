@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -283,7 +284,7 @@ fun AppNavigation(
                     )
 
                     DrawerMenuItem(
-                        icon = Icons.Rounded.RestaurantMenu,
+                        icon = Icons.Rounded.Restaurant,
                         label = "My Meals",
                         isSelected = currentRoute == FoodRoute,
                         onClick = {
@@ -294,7 +295,7 @@ fun AppNavigation(
                     )
 
                     DrawerMenuItem(
-                        icon = Icons.Rounded.RestaurantMenu,
+                        icon = Icons.AutoMirrored.Rounded.Assignment,
                         label = "Diet Plans",
                         isSelected = currentRoute == DietPlansRoute,
                         onClick = {
@@ -459,7 +460,7 @@ fun AppNavigation(
                                         backStack.add(FoodRoute)
                                     }
                                 },
-                                icon = Icons.Rounded.RestaurantMenu,
+                                icon = Icons.Rounded.Restaurant,
                                 label = "My Meals",
                                 modifier = Modifier.weight(1f)
                             )
@@ -541,6 +542,10 @@ fun AppNavigation(
                             onNavigateBack = {
                                 backStack.clear()
                                 backStack.add(DashboardRoute)
+                            },
+                            onNavigateToDietPlans = {
+                                backStack.clear()
+                                backStack.add(DietPlansRoute)
                             }
                         )
                     }

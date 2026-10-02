@@ -116,8 +116,8 @@ object DietPlansData {
             id = "plan_lose_weight_veg",
             goal = FitnessGoal.LOSE_WEIGHT,
             preference = DietPreference.VEG,
-            title = "The Lean Forge: Pure Veg Fat Loss",
-            subtitle = "High-protein, high-satiety Indian home cooking based on The Vegetarian Forge Blueprint.",
+            title = "Pure Vegetarian Fat Loss Plan",
+            subtitle = "High-protein, high-satiety Indian home cooking calibrated for fat loss and lean preservation.",
             totalCalories = 1600,
             totalProtein = 117f,
             totalCarbs = 190f,
@@ -257,8 +257,8 @@ object DietPlansData {
             id = "plan_gain_muscle_veg",
             goal = FitnessGoal.GAIN_MUSCLE,
             preference = DietPreference.VEG,
-            title = "The Build Forge: High-Protein Indian Veg",
-            subtitle = "Strategic pairing of paneer, rajma, curd, and sattu/shake to hit 141g clean protein.",
+            title = "High-Protein Vegetarian Muscle Plan",
+            subtitle = "Strategic pairing of paneer, rajma, curd, and sattu/shake to hit optimal muscle building protein.",
             totalCalories = 2300,
             totalProtein = 141f,
             totalCarbs = 288f,
@@ -315,7 +315,7 @@ object DietPlansData {
                 )
             ),
             nutritionTips = listOf(
-                "Leucine Trigger: Aim for 30-40g protein per main meal to trigger muscle protein synthesis (Page 4).",
+                "Leucine Trigger: Aim for 30-40g protein per main meal to trigger muscle protein synthesis.",
                 "Swap Strategy: Poha and rice are low-residue carbs that prevent the heavy stomach bloat associated with all-wheat diets.",
                 "Legume Safety: Never double rajma portions in a single jump; increase fiber by 5g per week to allow your microbiome to adapt.",
                 "Consume the banana peanut butter shake within 45 minutes of training to rapidly restore muscle glycogen."
@@ -397,8 +397,8 @@ object DietPlansData {
             id = "plan_gain_weight_veg",
             goal = FitnessGoal.GAIN_WEIGHT,
             preference = DietPreference.VEG,
-            title = "The Mass Forge: Clean Indian Bulking",
-            subtitle = "5-meal system with full-cream milk, peanut butter, sattu, and paneer (Page 16 of Forge).",
+            title = "Clean Indian Vegetarian Bulking Plan",
+            subtitle = "5-meal clean surplus system with full-cream milk, peanut butter, sattu, and paneer.",
             totalCalories = 2817,
             totalProtein = 163f,
             totalCarbs = 332f,
@@ -467,10 +467,10 @@ object DietPlansData {
                 )
             ),
             nutritionTips = listOf(
-                "Coach Note (Page 6): If you feel stuffed but the scale isn't moving, shift calories from high-volume raw foods to nutrient-dense foods (peanut butter, ghee, full-cream milk).",
-                "Meal 5 (The Quench) provides easy, liquid-based calories right before bed without disrupting digestion.",
+                "Pro Tip: If you feel full but the scale isn't moving, shift calories from high-volume raw foods to nutrient-dense foods (peanut butter, ghee, full-cream milk).",
+                "Meal 5 provides easy, liquid-based calories right before bed without disrupting digestion.",
                 "Rice beats chapatis at high volume: 95g basmati rice provides 74g clean carbs with near-zero chewing fatigue.",
-                "Target a weight gain of 0.25 to 0.5 kg per week for lean mass without excessive fat storage (Page 2)."
+                "Target a weight gain of 0.25 to 0.5 kg per week for lean mass without excessive fat storage."
             )
         ),
 

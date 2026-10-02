@@ -33,6 +33,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
+import com.example.macro_tracker.data.local.DietPlansData
+import com.example.macro_tracker.data.model.DailyDietPlan
+import com.example.macro_tracker.data.model.DietPreference
+import com.example.macro_tracker.data.model.FitnessGoal
+import com.example.macro_tracker.data.model.PlanMeal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +45,7 @@ fun FoodScreen(
     foodViewModel: FoodViewModel,
     profileViewModel: ProfileViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToDietPlans: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val dailyLogs by foodViewModel.dailyFoodLogs.collectAsState()
@@ -47,6 +53,29 @@ fun FoodScreen(
     val selectedDate by foodViewModel.selectedDate.collectAsState()
     val activeFilter by foodViewModel.mealFilter.collectAsState()
     val calorieGoal by profileViewModel.calorieGoal.collectAsState()
+    val proteinGoal by profileViewModel.proteinGoal.collectAsState()
+    val carbsGoal by profileViewModel.carbsGoal.collectAsState()
+    val fatGoal by profileViewModel.fatGoal.collectAsState()
+    val userDietPref by profileViewModel.dietaryPreference.collectAsState()
+    val userFitnessGoalStr by profileViewModel.userFitnessGoal.collectAsState()
+
+    val userDiet = if (userDietPref.equals("Veg", ignoreCase = true)) DietPreference.VEG else DietPreference.NON_VEG
+    val userGoal = try {
+        FitnessGoal.valueOf(userFitnessGoalStr)
+    } catch (e: Exception) {
+        FitnessGoal.LOSE_WEIGHT
+    }
+
+    val suggestedPlan = remember(userDiet, userGoal, calorieGoal, proteinGoal, carbsGoal, fatGoal) {
+        DietPlansData.getCalibratedPlan(
+            goal = userGoal,
+            preference = userDiet,
+            targetCalories = calorieGoal,
+            targetProtein = proteinGoal,
+            targetCarbs = carbsGoal,
+            targetFat = fatGoal
+        )
+    }
 
     val searchResults by foodViewModel.searchResults.collectAsState()
     val isLoading by foodViewModel.isLoading.collectAsState()
@@ -1165,6 +1194,257 @@ fun FoodScreen(
                     }
                 }
             }
+
+            // Today's Suggested Meals Section (shown in the last to user)
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                SuggestedMealsSection(
+                    plan = suggestedPlan,
+                    proteinGoal = proteinGoal,
+                    calorieGoal = calorieGoal,
+                    onLogMeal = { meal ->
+                        foodViewModel.quickAddMeal(
+                            mealType = meal.mealType,
+                            foodName = meal.dishName,
+                            calories = meal.calories,
+                            protein = meal.protein,
+                            carbs = meal.carbs,
+                            fat = meal.fat,
+                            fiber = meal.fiber,
+                            details = meal.portionDesc,
+                            weightGrams = 200f
+                        )
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Logged ${meal.dishName} to ${meal.mealType}!")
+                        }
+                    },
+                    onNavigateToDietPlans = onNavigateToDietPlans
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestedMealsSection(
+    plan: DailyDietPlan,
+    proteinGoal: Int,
+    calorieGoal: Int,
+    onLogMeal: (PlanMeal) -> Unit,
+    onNavigateToDietPlans: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+    ) {
+        // Section Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = null,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Suggested Meals for Today",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = OutfitFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        ),
+                        color = TextPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Calibrated to hit your daily ${proteinGoal}g protein & ${calorieGoal} kcal target",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = TextSecondary
+                )
+            }
+
+            TextButton(
+                onClick = onNavigateToDietPlans,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Diet Plans →",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = BrandGreen
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Suggested Meal Cards
+        plan.meals.forEach { meal ->
+            SuggestedMealCard(
+                meal = meal,
+                onLog = { onLogMeal(meal) },
+                modifier = Modifier.padding(vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SuggestedMealCard(
+    meal: PlanMeal,
+    onLog: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var logged by remember { mutableStateOf(false) }
+
+    val (typeColor, typeBg) = when (meal.mealType.lowercase()) {
+        "breakfast" -> Pair(MealYellowIcon, MealYellowBg)
+        "lunch" -> Pair(BrandGreen, BrandGreenPill)
+        "dinner" -> Pair(FatColor, FatBg)
+        else -> Pair(ProteinColor, ProteinBg)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = NutritrackSurface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+        shadowElevation = 1.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = typeBg
+                    ) {
+                        Text(
+                            text = meal.mealType.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            color = typeColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${meal.calories} kcal",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimary
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        onLog()
+                        logged = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (logged) BrandGreenPill else BrandGreen,
+                        contentColor = if (logged) BrandGreenDark else Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Icon(
+                        imageVector = if (logged) Icons.Rounded.Check else Icons.Rounded.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (logged) "Logged" else "+ Add",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = meal.dishName,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = OutfitFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                ),
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Text(
+                text = meal.portionDesc,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Macro pills row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                SmallMacroChip(label = "P", value = "${meal.protein.toInt()}g", color = MacroProtein)
+                SmallMacroChip(label = "C", value = "${meal.carbs.toInt()}g", color = MacroCarbs)
+                SmallMacroChip(label = "F", value = "${meal.fat.toInt()}g", color = MacroFat)
+                if (meal.fiber > 0) {
+                    SmallMacroChip(label = "Fiber", value = "${meal.fiber.toInt()}g", color = Color(0xFF00B894))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SmallMacroChip(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp
+                ),
+                color = color
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 10.sp
+                ),
+                color = TextPrimary
+            )
         }
     }
 }
