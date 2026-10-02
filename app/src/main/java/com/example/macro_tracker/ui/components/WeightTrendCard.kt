@@ -10,6 +10,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -462,7 +466,7 @@ fun WeightTrendCard(
                             .background(BrandGreenPill)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.ShowChart,
+                            imageVector = Icons.AutoMirrored.Rounded.ShowChart,
                             contentDescription = null,
                             tint = BrandGreen,
                             modifier = Modifier.size(18.dp)
@@ -579,23 +583,26 @@ fun WeightTrendCard(
                 ) {
                     // Smoothed Trend
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = NutritrackBg,
                         modifier = Modifier.weight(1.1f)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Text(
                                     text = "Trend",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = TextSecondary
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
+                                        .clip(RoundedCornerShape(6.dp))
                                         .background(BrandGreen.copy(alpha = 0.15f))
-                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        .padding(horizontal = 5.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "EMA",
@@ -603,19 +610,37 @@ fun WeightTrendCard(
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         ),
-                                        color = BrandGreen
+                                        color = BrandGreenDark
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = if (summary.currentTrendKg > 0) String.format(Locale.US, "%.1f", summary.currentTrendKg) else "--",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 22.sp
+                                    ),
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "kg",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    ),
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${summary.currentTrendKg} kg",
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = BrandGreen
-                            )
-                            Text(
-                                text = "Scale: ${summary.currentActualKg} kg",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "Scale: ${if (summary.currentActualKg > 0) String.format(Locale.US, "%.1f", summary.currentActualKg) else "--"} kg",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = TextSecondary
                             )
                         }
@@ -623,42 +648,60 @@ fun WeightTrendCard(
 
                     // Rate of change
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = NutritrackBg,
-                        modifier = Modifier.weight(0.9f)
+                        modifier = Modifier.weight(0.95f)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text(
                                 text = "Rate / week",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = TextSecondary
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             val rate = summary.weeklyRateKg
                             val (rateColor, rateIcon) = when {
-                                rate < -0.05f -> BrandGreen to Icons.Rounded.TrendingDown
-                                rate > 0.05f -> EnergyAmber to Icons.Rounded.TrendingUp
-                                else -> TextSecondary to Icons.Rounded.TrendingFlat
+                                rate < -0.05f -> BrandGreen to Icons.AutoMirrored.Rounded.TrendingDown
+                                rate > 0.05f -> EnergyAmber to Icons.AutoMirrored.Rounded.TrendingUp
+                                else -> TextSecondary to Icons.AutoMirrored.Rounded.TrendingFlat
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
                                 Icon(
                                     imageVector = rateIcon,
                                     contentDescription = null,
                                     tint = rateColor,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .padding(bottom = 2.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "${if (rate > 0) "+" else ""}$rate kg",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    text = "${if (rate > 0) "+" else ""}${String.format(Locale.US, "%.2f", rate)}",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 20.sp
+                                    ),
                                     color = rateColor
+                                )
+                                Text(
+                                    text = "kg",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(bottom = 2.dp)
                                 )
                             }
 
+                            Spacer(modifier = Modifier.height(4.dp))
+                            val totalSign = if (summary.totalChangeKg > 0) "+" else ""
                             Text(
-                                text = "${if (summary.totalChangeKg > 0) "+" else ""}${summary.totalChangeKg} kg total",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "$totalSign${String.format(Locale.US, "%.1f", summary.totalChangeKg)} kg total",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = TextSecondary
                             )
                         }

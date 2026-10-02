@@ -14,6 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,6 +83,9 @@ fun WeightTrendScreen(
             else -> 70f
         }
     }
+
+    // Performance optimization: Memoize sorted weigh-ins to prevent recalculating on every scroll frame
+    val sortedLogs = remember(weightLogs) { weightLogs.sortedByDescending { it.timestamp } }
 
     // Log Body Weight Dialog
     if (showLogDialog) {
@@ -419,106 +426,16 @@ fun WeightTrendScreen(
                 }
             }
 
-            // 2. Current Weight Trend Summary Cards
+            // 2. Current Weight Trend Summary Cards (Hero Display)
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Trend Card
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = NutritrackSurface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
-                        shadowElevation = 1.dp,
-                        modifier = Modifier.weight(1.2f)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Current Trend",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                    color = TextSecondary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(BrandGreen.copy(alpha = 0.15f))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = "EMA",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = BrandGreen
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "${String.format(Locale.US, "%.1f", currentWeight)} kg",
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 24.sp
-                                ),
-                                color = BrandGreen
-                            )
-                            val scaleWeight = if (weightTrendSummary.currentActualKg > 0) weightTrendSummary.currentActualKg else currentWeight
-                            Text(
-                                text = "Scale: ${String.format(Locale.US, "%.1f", scaleWeight)} kg",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-
-                    // Weekly Rate Card
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = NutritrackSurface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
-                        shadowElevation = 1.dp,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Weekly Rate",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = TextSecondary
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            val rate = weightTrendSummary.weeklyRateKg
-                            val (rateColor, rateIcon) = when {
-                                rate < -0.05f -> BrandGreen to Icons.Rounded.TrendingDown
-                                rate > 0.05f -> EnergyAmber to Icons.Rounded.TrendingUp
-                                else -> TextSecondary to Icons.Rounded.TrendingFlat
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = rateIcon,
-                                    contentDescription = null,
-                                    tint = rateColor,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${if (rate > 0) "+" else ""}${String.format(Locale.US, "%.2f", rate)} kg",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = rateColor
-                                )
-                            }
-                            Text(
-                                text = "${if (weightTrendSummary.totalChangeKg > 0) "+" else ""}${String.format(Locale.US, "%.1f", weightTrendSummary.totalChangeKg)} kg total",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                }
+                val scaleWeight = if (weightTrendSummary.currentActualKg > 0) weightTrendSummary.currentActualKg else currentWeight
+                WeightTrendHeroCards(
+                    currentTrendKg = currentWeight,
+                    scaleWeightKg = scaleWeight,
+                    weeklyRateKg = weightTrendSummary.weeklyRateKg,
+                    totalChangeKg = weightTrendSummary.totalChangeKg,
+                    userFitnessGoal = userFitnessGoal
+                )
             }
 
             // 3. Historical Weight Trend Chart (Scatter scale dots + smooth EMA curve)
@@ -627,7 +544,6 @@ fun WeightTrendScreen(
                     }
                 }
             } else {
-                val sortedLogs = weightLogs.sortedByDescending { it.timestamp }
                 items(sortedLogs, key = { it.id }) { log ->
                     Surface(
                         shape = RoundedCornerShape(16.dp),
@@ -712,6 +628,320 @@ fun WeightTrendScreen(
 }
 
 /**
+ * Helper state class for rate status display in WeightTrendHeroCards
+ */
+private data class RateStatus(
+    val badgeText: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val isLoss: Boolean,
+    val isGain: Boolean
+)
+
+/**
+ * Weight Trend Hero Cards
+ * High-aesthetic dual-card hero section displaying:
+ * 1) Current Trend (Noise-filtered Exponential Moving Average) with water/scale discrepancy indicator.
+ * 2) Weekly Rate (Calorie deficit/surplus speed of change) with user-fitness-goal context.
+ */
+@Composable
+fun WeightTrendHeroCards(
+    currentTrendKg: Float,
+    scaleWeightKg: Float,
+    weeklyRateKg: Float,
+    totalChangeKg: Float,
+    userFitnessGoal: String,
+    modifier: Modifier = Modifier
+) {
+    val deltaFromScale = scaleWeightKg - currentTrendKg
+
+    val isGoalGain = userFitnessGoal.contains("GAIN", ignoreCase = true)
+    val isGoalLose = userFitnessGoal.contains("LOSE", ignoreCase = true)
+
+    val rateStatus = remember(weeklyRateKg, isGoalGain, isGoalLose) {
+        when {
+            weeklyRateKg < -0.15f -> {
+                val badge = if (isGoalLose) "Target Deficit" else "Weight Loss"
+                RateStatus(badge, Icons.AutoMirrored.Rounded.TrendingDown, isLoss = true, isGain = false)
+            }
+            weeklyRateKg > 0.15f -> {
+                val badge = if (isGoalGain) "Lean Bulk Pace" else "Weight Gain"
+                RateStatus(badge, Icons.AutoMirrored.Rounded.TrendingUp, isLoss = false, isGain = true)
+            }
+            else -> {
+                RateStatus("Holding Steady", Icons.AutoMirrored.Rounded.TrendingFlat, isLoss = false, isGain = false)
+            }
+        }
+    }
+
+    val rateColor = when {
+        rateStatus.isLoss -> BrandGreen
+        rateStatus.isGain -> EnergyAmber
+        else -> TextSecondary
+    }
+
+    val rateBg = when {
+        rateStatus.isLoss -> BrandGreenPill
+        rateStatus.isGain -> EnergyAmber.copy(alpha = 0.12f)
+        else -> NutritrackBorderLight
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // --- 1. Current Trend Card ---
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = NutritrackSurface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+            shadowElevation = 2.dp,
+            modifier = Modifier.weight(1.1f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Top Header: Icon + Title + Pill Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(BrandGreenPill)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.MonitorWeight,
+                                contentDescription = null,
+                                tint = BrandGreen,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                        Text(
+                            text = "Trend",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BrandGreen.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = "Smoothed",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = BrandGreenDark,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hero Trend Number
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = if (currentTrendKg > 0) String.format(Locale.US, "%.1f", currentTrendKg) else "--",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "kg",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        ),
+                        color = TextSecondary,
+                        modifier = Modifier.padding(bottom = 3.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Scale weight & Water/glycogen Discrepancy Micro-Chip
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = NutritrackBg,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Scale: ${if (scaleWeightKg > 0) String.format(Locale.US, "%.1f", scaleWeightKg) else "--"} kg",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondary
+                        )
+
+                        if (scaleWeightKg > 0 && currentTrendKg > 0) {
+                            val (dispText, dispColor) = when {
+                                deltaFromScale > 0.05f -> {
+                                    "+${String.format(Locale.US, "%.1f", deltaFromScale)} (water)" to Color(0xFF00897B)
+                                }
+                                deltaFromScale < -0.05f -> {
+                                    "${String.format(Locale.US, "%.1f", deltaFromScale)} (dip)" to EnergyAmber
+                                }
+                                else -> {
+                                    "In sync" to BrandGreen
+                                }
+                            }
+                            Text(
+                                text = dispText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = dispColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 2. Weekly Rate Card ---
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = NutritrackSurface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+            shadowElevation = 2.dp,
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Top Header: Icon + Title + Goal Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(rateBg)
+                        ) {
+                            Icon(
+                                imageVector = rateStatus.icon,
+                                contentDescription = null,
+                                tint = rateColor,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                        Text(
+                            text = "Rate",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = rateBg
+                    ) {
+                        Text(
+                            text = rateStatus.badgeText,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = rateColor,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hero Rate Number
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "${if (weeklyRateKg > 0) "+" else ""}${String.format(Locale.US, "%.2f", weeklyRateKg)}",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = rateColor
+                    )
+                    Text(
+                        text = "kg/wk",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
+                        ),
+                        color = TextSecondary,
+                        modifier = Modifier.padding(bottom = 3.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Net Total Change Micro-Chip
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = NutritrackBg,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        val totalSign = if (totalChangeKg > 0) "+" else ""
+                        Text(
+                            text = "$totalSign${String.format(Locale.US, "%.1f", totalChangeKg)} kg total",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Historical Weight Trend Chart Card
  * Renders actual weigh-in dots and a smoothed EMA trend line.
  */
@@ -744,7 +974,7 @@ fun HistoricalTrendChartCard(
                             .background(BrandGreenPill)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.ShowChart,
+                            imageVector = Icons.AutoMirrored.Rounded.ShowChart,
                             contentDescription = null,
                             tint = BrandGreen,
                             modifier = Modifier.size(18.dp)
@@ -819,12 +1049,14 @@ fun HistoricalTrendChartCard(
                     }
                 }
             } else {
-                // Interactive Canvas Chart
-                val allActual = points.map { it.actualWeight }
-                val allTrend = points.map { it.trendWeight }
-                val minWeight = ((allActual + allTrend).minOrNull() ?: 60f) - 1.0f
-                val maxWeight = ((allActual + allTrend).maxOrNull() ?: 80f) + 1.0f
-                val weightRange = (maxWeight - minWeight).coerceAtLeast(1.0f)
+                // Interactive Canvas Chart (Optimized: memoize min/max/range calculations)
+                val (minWeight, maxWeight, weightRange) = remember(points) {
+                    val allActual = points.map { it.actualWeight }
+                    val allTrend = points.map { it.trendWeight }
+                    val min = ((allActual + allTrend).minOrNull() ?: 60f) - 1.0f
+                    val max = ((allActual + allTrend).maxOrNull() ?: 80f) + 1.0f
+                    Triple(min, max, (max - min).coerceAtLeast(1.0f))
+                }
 
                 val gridColor = NutritrackBorderLight
                 val dotMutedColor = TextMuted.copy(alpha = 0.6f)
@@ -949,6 +1181,17 @@ fun HistoricalTrendChartCard(
     }
 }
 
+private data class PredictionMilestones(
+    val m1Change: Float,
+    val m2Change: Float,
+    val m3Change: Float,
+    val m1Weight: Float,
+    val m2Weight: Float,
+    val m3Weight: Float,
+    val dailyCalorieAdjustment: Int,
+    val recommendedCalories: Int
+)
+
 /**
  * 3-Month Future Predictions Section
  * Provides user choice for Weight Gain or Weight Loss and displays an interactive 3-month forecast graph.
@@ -964,24 +1207,33 @@ fun ThreeMonthPredictionSection(
     modifier: Modifier = Modifier
 ) {
     val isGain = predictionGoal == "GAIN"
-    val sign = if (isGain) 1f else -1f
 
-    // 3-Month Milestones Calculation (12 Weeks = ~3 Months / 90 Days)
-    val m1Change = sign * weeklyPace * 4f
-    val m2Change = sign * weeklyPace * 8f
-    val m3Change = sign * weeklyPace * 12f
-
-    val m1Weight = Math.round((currentWeight + m1Change) * 10f) / 10f
-    val m2Weight = Math.round((currentWeight + m2Change) * 10f) / 10f
-    val m3Weight = Math.round((currentWeight + m3Change) * 10f) / 10f
-
-    // 1 kg body fat/muscle surplus/deficit ~ 7700 kcal / 7 = 1100 kcal per 1kg/week
-    val dailyCalorieAdjustment = (weeklyPace * 1100f).toInt()
-    val recommendedCalories = if (isGain) {
-        calorieGoal + dailyCalorieAdjustment
-    } else {
-        (calorieGoal - dailyCalorieAdjustment).coerceAtLeast(1200)
+    // Memoize 3-Month Milestones Calculation to optimize performance & memory
+    val milestones = remember(currentWeight, weeklyPace, isGain, calorieGoal) {
+        val sign = if (isGain) 1f else -1f
+        val m1C = sign * weeklyPace * 4f
+        val m2C = sign * weeklyPace * 8f
+        val m3C = sign * weeklyPace * 12f
+        val m1W = Math.round((currentWeight + m1C) * 10f) / 10f
+        val m2W = Math.round((currentWeight + m2C) * 10f) / 10f
+        val m3W = Math.round((currentWeight + m3C) * 10f) / 10f
+        val calAdj = (weeklyPace * 1100f).toInt()
+        val recCal = if (isGain) {
+            calorieGoal + calAdj
+        } else {
+            (calorieGoal - calAdj).coerceAtLeast(1200)
+        }
+        PredictionMilestones(m1C, m2C, m3C, m1W, m2W, m3W, calAdj, recCal)
     }
+
+    val m1Change = milestones.m1Change
+    val m2Change = milestones.m2Change
+    val m3Change = milestones.m3Change
+    val m1Weight = milestones.m1Weight
+    val m2Weight = milestones.m2Weight
+    val m3Weight = milestones.m3Weight
+    val dailyCalorieAdjustment = milestones.dailyCalorieAdjustment
+    val recommendedCalories = milestones.recommendedCalories
 
     val targetDate = remember {
         LocalDate.now().plusMonths(3).format(DateTimeFormatter.ofPattern("d MMMM yyyy"))
@@ -1010,7 +1262,7 @@ fun ThreeMonthPredictionSection(
                             .background(if (isGain) EnergyAmber.copy(alpha = 0.15f) else BrandGreenPill)
                     ) {
                         Icon(
-                            imageVector = if (isGain) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
+                            imageVector = if (isGain) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
                             contentDescription = null,
                             tint = if (isGain) EnergyAmber else BrandGreen,
                             modifier = Modifier.size(20.dp)
@@ -1078,7 +1330,7 @@ fun ThreeMonthPredictionSection(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.TrendingDown,
+                            imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                             contentDescription = null,
                             tint = if (isLoseSelected) Color.White else TextSecondary,
                             modifier = Modifier.size(16.dp)
@@ -1107,7 +1359,7 @@ fun ThreeMonthPredictionSection(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.TrendingUp,
+                            imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                             contentDescription = null,
                             tint = if (isGain) Color.White else TextSecondary,
                             modifier = Modifier.size(16.dp)
