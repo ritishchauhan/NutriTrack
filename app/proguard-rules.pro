@@ -12,7 +12,6 @@
     @com.squareup.moshi.* <fields>;
 }
 -keep class com.example.macro_tracker.data.remote.** { *; }
--keep class com.example.macro_tracker.data.remote.neon.** { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase
