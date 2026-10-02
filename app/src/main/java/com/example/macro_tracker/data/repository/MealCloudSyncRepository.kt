@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.macro_tracker.data.local.FoodLogDao
 import com.example.macro_tracker.data.local.FoodLogEntity
 import com.example.macro_tracker.data.local.UserProfileManager
-import com.example.macro_tracker.data.remote.NeonMigrationHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -92,10 +91,7 @@ class MealCloudSyncRepositoryImpl(
         try {
             Log.d(TAG, "Starting account data sync for $userId with Cloud Firestore")
 
-            // 1. Migrate legacy data if this user has pre-existing Neon data needing initial Firestore migration
-            NeonMigrationHelper.migrateIfNecessary(userId, firestoreRepository)
-
-            // 2. Synchronize Firestore remote history with local database & user profile
+            // 1. Synchronize Firestore remote history with local database & user profile
             firestoreRepository.syncRemoteHistoryToLocal(userId, foodLogDao, userProfileManager)
 
             // 3. Ensure local profile preferences are pushed to Firestore if not yet stored

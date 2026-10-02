@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "nutritrack-service"
+location: "asia-southeast1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "nutritrack_db"
+      cloudSql:
+        instanceId: "nutritrack-sql"
+      schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]

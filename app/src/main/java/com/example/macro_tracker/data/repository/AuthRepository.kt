@@ -73,7 +73,7 @@ interface AuthRepository {
 
 /**
  * Production implementation of [AuthRepository] integrating Firebase Authentication,
- * Google Sign-In, Phone Verification, Neon Postgres, and Cloud Firestore.
+ * Google Sign-In, Phone Verification, Firebase SQL Connect, and Cloud Firestore.
  */
 class FirebaseAuthRepositoryImpl(
     private val context: Context,

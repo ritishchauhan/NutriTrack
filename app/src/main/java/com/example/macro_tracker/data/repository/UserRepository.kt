@@ -50,7 +50,7 @@ interface UserRepository {
 
 /**
  * Concrete implementation of [UserRepository] delegating to [UserProfileManager]
- * and synchronizing user preferences and goals with Neon Postgres and Cloud Firestore.
+ * and synchronizing user preferences and goals with Cloud Firestore and Firebase SQL Connect.
  */
 class UserRepositoryImpl(
     private val userProfileManager: UserProfileManager,
