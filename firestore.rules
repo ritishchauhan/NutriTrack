@@ -9,39 +9,74 @@ service cloud.firestore {
     // Collection: users
     // Document ID: {userId} (matches Firebase Auth UID)
     // Fields:
-    //   - uid: string (required, immutable) - Auth UID
-    //   - email: string (optional, max 120 chars, valid email)
-    //   - phoneNumber: string (optional, max 25 chars)
-    //   - displayName: string (optional, max 100 chars)
-    //   - calorieGoal: number (optional, 0..15000)
-    //   - proteinGoal: number (optional, 0..1000)
-    //   - carbsGoal: number (optional, 0..2000)
-    //   - fatGoal: number (optional, 0..1000)
-    //   - fiberGoal: number (optional, 0..500)
-    //   - waterGoal: number (optional, 0..20)
-    //   - waterLogged: number (optional, 0..50)
-    //   - streakDays: number (optional, 0..10000)
-    //   - userWeightKg: number (optional, 10..500)
-    //   - userHeightCm: number (optional, 30..300)
-    //   - userFitnessGoal: string (optional, max 50 chars)
-    //   - activityLevel: string (optional, max 50 chars)
-    //   - dietaryPreference: string (optional, max 50 chars)
-    //   - updatedAt: timestamp (optional)
+    //   - userId / uid: string (matches auth UID)
+    //   - name / displayName: string (optional, max 100 chars)
+    //   - email: string (optional, max 120 chars)
+    //   - calorieTarget / calorieGoal: number (0..15000)
+    //   - proteinTarget / proteinGoal: number (0..1000)
+    //   - carbsTarget / carbsGoal: number (0..2000)
+    //   - fatTarget / fatGoal: number (0..1000)
+    //   - fiberTarget / fiberGoal: number (0..500)
+    //   - waterTarget / waterGoal: number (0..50)
+    //   - waterLogged: number (0..50)
+    //   - streakDays: number (>= 0)
+    //   - weightKg / userWeightKg: number (10..500)
+    //   - heightCm / userHeightCm: number (30..300)
+    //   - fitnessGoal / userFitnessGoal: string (max 50 chars)
+    //   - dietaryPreference: string (max 50 chars)
+    //   - activityLevel: string (max 50 chars)
+    //   - updatedAt: number or timestamp
     //
     // Subcollection: users/{userId}/food_logs
     // Document ID: {logId}
     // Fields:
-    //   - id: number (required)
-    //   - foodName: string (required, 1..200 chars)
-    //   - calories: number (required, 0..20000)
-    //   - protein: number (required, 0..2000)
-    //   - carbs: number (required, 0..3000)
-    //   - fat: number (required, 0..2000)
+    //   - foodName: string (1..200 chars)
+    //   - calories: number (0..20000)
+    //   - protein: number (0..2000)
+    //   - carbs: number (0..3000)
+    //   - fat: number (0..2000)
     //   - fiber: number (optional, 0..500)
-    //   - timestamp: number (required, > 0)
-    //   - mealType: string (required, max 50 chars)
-    //   - details: string (optional, max 1000 chars)
-    //   - userId: string (required, matches {userId})
+    //   - portionMultiplier: number (optional, 0..100)
+    //   - mealType: string (1..50 chars)
+    //   - barcode: string (optional, max 100 chars)
+    //   - imageUrl: string (optional, max 1000 chars)
+    //   - timestamp: number or timestamp (> 0)
+    //   - details: string (optional, max 2000 chars)
+    //   - userId: string (optional, matches {userId})
+    //
+    // Subcollection: users/{userId}/weight_logs
+    // Document ID: {logId}
+    // Fields:
+    //   - weightKg: number (10..500)
+    //   - timestamp: number or timestamp (> 0)
+    //   - note: string (optional, max 500 chars)
+    //   - userId: string (optional, matches {userId})
+    //
+    // Subcollection: users/{userId}/activity_metrics
+    // Document ID: {metricId}
+    // Fields:
+    //   - recordType: string (1..50 chars)
+    //   - value: number (>= 0)
+    //   - date: string (optional, max 30 chars)
+    //   - userId: string (optional, matches {userId})
+    //
+    // Subcollection: users/{userId}/hydration_logs
+    // Document ID: {logId}
+    // Fields:
+    //   - amountLiters: number (0..50)
+    //   - timestamp: number or timestamp (> 0)
+    //   - userId: string (optional, matches {userId})
+    //
+    // Subcollection: users/{userId}/preference_settings
+    // Document ID: {docId}
+    // Fields:
+    //   - themeMode: string (optional, max 20 chars)
+    //   - reminderBreakfastEnabled: boolean (optional)
+    //   - reminderLunchEnabled: boolean (optional)
+    //   - reminderDinnerEnabled: boolean (optional)
+    //   - reminderWaterEnabled: boolean (optional)
+    //   - reminderStreakEnabled: boolean (optional)
+    //   - userId: string (optional, matches {userId})
     //
     // ===============================================================
 
@@ -55,32 +90,38 @@ service cloud.firestore {
     }
 
     function uidUnchanged() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+      return (!('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid) &&
+             (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid);
     }
 
     function uidNotModified() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
-    }
-
-    function isValidEmail(email) {
-      return email is string && email.size() <= 120 &&
-        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+      return (!('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid) &&
+             (!('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId);
     }
 
     function isValidUserProfile(data) {
       return (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
-        (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 25)) &&
+        (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
         (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('calorieTarget' in data) || (data.calorieTarget is number && data.calorieTarget >= 0 && data.calorieTarget <= 15000)) &&
         (!('calorieGoal' in data) || (data.calorieGoal is number && data.calorieGoal >= 0 && data.calorieGoal <= 15000)) &&
+        (!('proteinTarget' in data) || (data.proteinTarget is number && data.proteinTarget >= 0 && data.proteinTarget <= 1000)) &&
         (!('proteinGoal' in data) || (data.proteinGoal is number && data.proteinGoal >= 0 && data.proteinGoal <= 1000)) &&
+        (!('carbsTarget' in data) || (data.carbsTarget is number && data.carbsTarget >= 0 && data.carbsTarget <= 2000)) &&
         (!('carbsGoal' in data) || (data.carbsGoal is number && data.carbsGoal >= 0 && data.carbsGoal <= 2000)) &&
+        (!('fatTarget' in data) || (data.fatTarget is number && data.fatTarget >= 0 && data.fatTarget <= 1000)) &&
         (!('fatGoal' in data) || (data.fatGoal is number && data.fatGoal >= 0 && data.fatGoal <= 1000)) &&
+        (!('fiberTarget' in data) || (data.fiberTarget is number && data.fiberTarget >= 0 && data.fiberTarget <= 500)) &&
         (!('fiberGoal' in data) || (data.fiberGoal is number && data.fiberGoal >= 0 && data.fiberGoal <= 500)) &&
-        (!('waterGoal' in data) || (data.waterGoal is number && data.waterGoal >= 0 && data.waterGoal <= 20)) &&
+        (!('waterTarget' in data) || (data.waterTarget is number && data.waterTarget >= 0 && data.waterTarget <= 50)) &&
+        (!('waterGoal' in data) || (data.waterGoal is number && data.waterGoal >= 0 && data.waterGoal <= 50)) &&
         (!('waterLogged' in data) || (data.waterLogged is number && data.waterLogged >= 0 && data.waterLogged <= 50)) &&
         (!('streakDays' in data) || (data.streakDays is number && data.streakDays >= 0)) &&
+        (!('weightKg' in data) || (data.weightKg is number && data.weightKg >= 10 && data.weightKg <= 500)) &&
         (!('userWeightKg' in data) || (data.userWeightKg is number && data.userWeightKg >= 10 && data.userWeightKg <= 500)) &&
+        (!('heightCm' in data) || (data.heightCm is number && data.heightCm >= 30 && data.heightCm <= 300)) &&
         (!('userHeightCm' in data) || (data.userHeightCm is number && data.userHeightCm >= 30 && data.userHeightCm <= 300)) &&
+        (!('fitnessGoal' in data) || (data.fitnessGoal is string && data.fitnessGoal.size() <= 50)) &&
         (!('userFitnessGoal' in data) || (data.userFitnessGoal is string && data.userFitnessGoal.size() <= 50)) &&
         (!('activityLevel' in data) || (data.activityLevel is string && data.activityLevel.size() <= 50)) &&
         (!('dietaryPreference' in data) || (data.dietaryPreference is string && data.dietaryPreference.size() <= 50)) &&
@@ -88,17 +129,46 @@ service cloud.firestore {
     }
 
     function isValidFoodLog(data, userId) {
-      return data.keys().hasAll(['id', 'foodName', 'calories', 'protein', 'carbs', 'fat', 'timestamp', 'mealType', 'userId']) &&
-        data.foodName is string && data.foodName.size() >= 1 && data.foodName.size() <= 200 &&
+      return data.foodName is string && data.foodName.size() >= 1 && data.foodName.size() <= 200 &&
         data.calories is number && data.calories >= 0 && data.calories <= 20000 &&
         data.protein is number && data.protein >= 0 && data.protein <= 2000 &&
         data.carbs is number && data.carbs >= 0 && data.carbs <= 3000 &&
         data.fat is number && data.fat >= 0 && data.fat <= 2000 &&
-        data.timestamp is number && data.timestamp > 0 &&
         data.mealType is string && data.mealType.size() <= 50 &&
-        data.userId == userId &&
+        (!('userId' in data) || data.userId == userId) &&
+        (!('portionMultiplier' in data) || (data.portionMultiplier is number && data.portionMultiplier >= 0 && data.portionMultiplier <= 100)) &&
+        (!('barcode' in data) || (data.barcode is string && data.barcode.size() <= 100)) &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
         (!('fiber' in data) || (data.fiber is number && data.fiber >= 0 && data.fiber <= 500)) &&
-        (!('details' in data) || (data.details is string && data.details.size() <= 1000));
+        (!('details' in data) || (data.details is string && data.details.size() <= 2000));
+    }
+
+    function isValidWeightLog(data, userId) {
+      return data.weightKg is number && data.weightKg >= 10 && data.weightKg <= 500 &&
+        (!('note' in data) || (data.note is string && data.note.size() <= 500)) &&
+        (!('userId' in data) || data.userId == userId);
+    }
+
+    function isValidActivityMetric(data, userId) {
+      return data.recordType is string && data.recordType.size() <= 50 &&
+        data.value is number && data.value >= 0 &&
+        (!('date' in data) || (data.date is string && data.date.size() <= 30)) &&
+        (!('userId' in data) || data.userId == userId);
+    }
+
+    function isValidHydrationLog(data, userId) {
+      return data.amountLiters is number && data.amountLiters >= 0 && data.amountLiters <= 50 &&
+        (!('userId' in data) || data.userId == userId);
+    }
+
+    function isValidPreferenceSettings(data, userId) {
+      return (!('themeMode' in data) || (data.themeMode is string && data.themeMode.size() <= 20)) &&
+        (!('reminderBreakfastEnabled' in data) || data.reminderBreakfastEnabled is bool) &&
+        (!('reminderLunchEnabled' in data) || data.reminderLunchEnabled is bool) &&
+        (!('reminderDinnerEnabled' in data) || data.reminderDinnerEnabled is bool) &&
+        (!('reminderWaterEnabled' in data) || data.reminderWaterEnabled is bool) &&
+        (!('reminderStreakEnabled' in data) || data.reminderStreakEnabled is bool) &&
+        (!('userId' in data) || data.userId == userId);
     }
 
     // Match user root document
@@ -108,11 +178,43 @@ service cloud.firestore {
       allow update: if isOwner(userId) && uidNotModified() && isValidUserProfile(request.resource.data);
       allow delete: if isOwner(userId);
 
-      // Match user food logs subcollection
+      // Subcollection: food_logs
       match /food_logs/{logId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidFoodLog(request.resource.data, userId);
         allow update: if isOwner(userId) && isValidFoodLog(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: weight_logs
+      match /weight_logs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWeightLog(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidWeightLog(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: activity_metrics
+      match /activity_metrics/{metricId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidActivityMetric(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidActivityMetric(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: hydration_logs
+      match /hydration_logs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidHydrationLog(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidHydrationLog(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: preference_settings
+      match /preference_settings/{docId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidPreferenceSettings(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidPreferenceSettings(request.resource.data, userId);
         allow delete: if isOwner(userId);
       }
     }

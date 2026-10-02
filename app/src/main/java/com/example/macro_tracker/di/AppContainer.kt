@@ -4,16 +4,18 @@ import android.content.Context
 import com.example.macro_tracker.data.local.AppDatabase
 import com.example.macro_tracker.data.local.UserProfileManager
 import com.example.macro_tracker.data.remote.NutritionApiClient
-import com.example.macro_tracker.data.repository.FoodRepository
-import com.example.macro_tracker.data.repository.FoodRepositoryImpl
-import com.example.macro_tracker.data.repository.UserRepository
-import com.example.macro_tracker.data.repository.UserRepositoryImpl
 import com.example.macro_tracker.data.repository.AuthRepository
 import com.example.macro_tracker.data.repository.FirebaseAuthRepositoryImpl
 import com.example.macro_tracker.data.repository.FirestoreRepository
 import com.example.macro_tracker.data.repository.FirestoreRepositoryImpl
+import com.example.macro_tracker.data.repository.FoodRepository
+import com.example.macro_tracker.data.repository.FoodRepositoryImpl
 import com.example.macro_tracker.data.repository.MealCloudSyncRepository
 import com.example.macro_tracker.data.repository.MealCloudSyncRepositoryImpl
+import com.example.macro_tracker.data.repository.UserRepository
+import com.example.macro_tracker.data.repository.UserRepositoryImpl
+import com.example.macro_tracker.data.repository.WeightRepository
+import com.example.macro_tracker.data.repository.WeightRepositoryImpl
 
 /**
  * Dependency container interface defining application-level singletons for MVVM architecture.
@@ -24,7 +26,7 @@ interface AppContainer {
     val authRepository: AuthRepository
     val firestoreRepository: FirestoreRepository
     val mealCloudSyncRepository: MealCloudSyncRepository
-    val weightRepository: com.example.macro_tracker.data.repository.WeightRepository
+    val weightRepository: WeightRepository
 }
 
 /**
@@ -44,10 +46,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         UserProfileManager(context)
     }
 
-    private val neonApiClient: com.example.macro_tracker.data.remote.neon.NeonApiClient by lazy {
-        com.example.macro_tracker.data.remote.neon.NeonApiClient()
-    }
-
     override val firestoreRepository: FirestoreRepository by lazy {
         FirestoreRepositoryImpl()
     }
@@ -56,8 +54,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         MealCloudSyncRepositoryImpl(
             foodLogDao = database.foodLogDao(),
             userProfileManager = userProfileManager,
-            firestoreRepository = firestoreRepository,
-            neonApiClient = neonApiClient
+            firestoreRepository = firestoreRepository
         )
     }
 
@@ -65,16 +62,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         FoodRepositoryImpl(
             foodLogDao = database.foodLogDao(),
             nutritionApi = NutritionApiClient.api,
-            firestoreRepository = firestoreRepository,
-            neonApiClient = neonApiClient
+            firestoreRepository = firestoreRepository
         )
     }
 
     override val userRepository: UserRepository by lazy {
         UserRepositoryImpl(
             userProfileManager = userProfileManager,
-            firestoreRepository = firestoreRepository,
-            neonApiClient = neonApiClient
+            firestoreRepository = firestoreRepository
         )
     }
 
@@ -88,12 +83,11 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
-    override val weightRepository: com.example.macro_tracker.data.repository.WeightRepository by lazy {
-        com.example.macro_tracker.data.repository.WeightRepositoryImpl(
+    override val weightRepository: WeightRepository by lazy {
+        WeightRepositoryImpl(
             weightLogDao = database.weightLogDao(),
             userProfileManager = userProfileManager,
-            firestoreRepository = firestoreRepository,
-            neonApiClient = neonApiClient
+            firestoreRepository = firestoreRepository
         )
     }
 }
