@@ -62,6 +62,7 @@ fun FoodScreen(
     var showQuickAddDialog by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var itemToDelete by remember { mutableStateOf<FoodLogEntity?>(null) }
+    var mealToAdjustQuantity by remember { mutableStateOf<FoodLogEntity?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
@@ -191,6 +192,7 @@ fun FoodScreen(
     if (showQuickAddDialog) {
         var mealTypeSelection by remember { mutableStateOf(selectedMealForAdd) }
         var mealNameInput by remember { mutableStateOf("") }
+        var weightGramsInput by remember { mutableStateOf("100") }
         var caloriesInput by remember { mutableStateOf("") }
         var proteinInput by remember { mutableStateOf("") }
         var carbsInput by remember { mutableStateOf("") }
@@ -291,6 +293,25 @@ fun FoodScreen(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
+                            value = weightGramsInput,
+                            onValueChange = { weightGramsInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                            label = { Text("Weight (gm)") },
+                            placeholder = { Text("100", color = TextMuted) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = BrandGreen,
+                                unfocusedBorderColor = NutritrackBorder,
+                                focusedContainerColor = NutritrackBg,
+                                unfocusedContainerColor = NutritrackBg,
+                                cursorColor = BrandGreen
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
                             value = caloriesInput,
                             onValueChange = { caloriesInput = it.filter { ch -> ch.isDigit() } },
                             label = { Text("Calories (kcal)") },
@@ -309,6 +330,9 @@ fun FoodScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedTextField(
                             value = proteinInput,
                             onValueChange = { proteinInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
@@ -422,6 +446,7 @@ fun FoodScreen(
                         val cleanName = mealNameInput.trim()
                         val details = if (descInput.isNotBlank()) "Ingredients: ${descInput.trim()} • P ${pro.toInt()}g • C ${carb.toInt()}g • F ${fat.toInt()}g" + (if (fib > 0f) " • Fib ${fib.toInt()}g" else "")
                         else "P ${pro.toInt()}g • C ${carb.toInt()}g • F ${fat.toInt()}g" + (if (fib > 0f) " • Fib ${fib.toInt()}g" else "")
+                        val wt = weightGramsInput.toFloatOrNull() ?: 100f
                         foodViewModel.quickAddMeal(
                             mealType = mealTypeSelection,
                             foodName = cleanName,
@@ -430,7 +455,8 @@ fun FoodScreen(
                             carbs = carb,
                             fat = fat,
                             fiber = fib,
-                            details = details
+                            details = details,
+                            weightGrams = wt
                         )
                         showQuickAddDialog = false
                         coroutineScope.launch {
@@ -477,6 +503,19 @@ fun FoodScreen(
                 TextButton(onClick = { itemToDelete = null }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (mealToAdjustQuantity != null) {
+        com.example.macro_tracker.ui.components.AdjustMealQuantityDialog(
+            log = mealToAdjustQuantity!!,
+            onDismissRequest = { mealToAdjustQuantity = null },
+            onUpdateWeight = { newWeight ->
+                mealToAdjustQuantity?.let { foodViewModel.updateMealWeight(it, newWeight) }
+            },
+            onDeleteMeal = {
+                mealToAdjustQuantity?.let { foodViewModel.deleteFoodLog(it) }
             }
         )
     }
@@ -1329,7 +1368,7 @@ fun FoodScreen(
                 ) { log ->
                     MealLogItem(
                         log = log,
-                        onClick = { itemToDelete = log },
+                        onClick = { mealToAdjustQuantity = log },
                         onIncrement = {
                             foodViewModel.updateMealServings(log, log.servings + 1)
                         },
@@ -1574,12 +1613,31 @@ fun MealLogItem(
                         maxLines = 1
                     )
                 }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (log.details.isNotBlank()) log.details else "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = TextSecondary
-                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = BrandGreenPill
+                    ) {
+                        Text(
+                            text = "${log.weightGrams.toInt()} gm",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            ),
+                            color = BrandGreenDark,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (log.details.isNotBlank()) log.details else "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(6.dp))

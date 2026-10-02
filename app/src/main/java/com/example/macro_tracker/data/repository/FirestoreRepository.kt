@@ -143,6 +143,7 @@ class FirestoreRepositoryImpl(
                 "fiber" to foodLog.fiber.toDouble(),
                 "portionMultiplier" to foodLog.servings.toDouble(),
                 "servings" to foodLog.servings,
+                "weightGrams" to foodLog.weightGrams.toDouble(),
                 "mealType" to foodLog.mealType,
                 "barcode" to "",
                 "imageUrl" to "",
@@ -292,6 +293,7 @@ class FirestoreRepositoryImpl(
                     val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                     val mealType = doc.getString("mealType") ?: "Breakfast"
                     val details = doc.getString("details") ?: ""
+                    val weightGrams = (doc.getDouble("weightGrams") ?: 100.0).toFloat()
 
                     FoodLogEntity(
                         id = id,
@@ -303,6 +305,7 @@ class FirestoreRepositoryImpl(
                         fat = fat,
                         fiber = fiber,
                         servings = servings,
+                        weightGrams = weightGrams,
                         timestamp = timestamp,
                         mealType = mealType,
                         details = details
@@ -345,6 +348,7 @@ class FirestoreRepositoryImpl(
                         "fiber" to log.fiber.toDouble(),
                         "portionMultiplier" to log.servings.toDouble(),
                         "servings" to log.servings,
+                        "weightGrams" to log.weightGrams.toDouble(),
                         "mealType" to log.mealType,
                         "barcode" to "",
                         "imageUrl" to "",

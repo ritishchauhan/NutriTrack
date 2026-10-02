@@ -44,9 +44,11 @@ interface FoodRepository {
         fat: Float,
         fiber: Float,
         details: String,
-        date: LocalDate
+        date: LocalDate,
+        weightGrams: Float = 100f
     )
     suspend fun updateMealServings(foodLog: FoodLogEntity, newServings: Int)
+    suspend fun updateMealWeight(foodLog: FoodLogEntity, newWeightGrams: Float)
     suspend fun deleteFoodLog(foodLog: FoodLogEntity)
     suspend fun deleteFoodLogsForDate(date: LocalDate)
     suspend fun copyMealsFromDate(sourceDate: LocalDate, targetDate: LocalDate, mealType: String? = null): Result<Int>
@@ -349,7 +351,8 @@ class FoodRepositoryImpl(
         fat: Float,
         fiber: Float,
         details: String,
-        date: LocalDate
+        date: LocalDate,
+        weightGrams: Float
     ): Unit = withContext(ioDispatcher) {
         val uid = getAuthenticatedUserId() ?: throw IllegalStateException("Must be signed in to log meals.")
         val defaultHour = when (mealType.lowercase()) {
@@ -374,7 +377,8 @@ class FoodRepositoryImpl(
             fiber = fiber,
             timestamp = selectedTimestamp,
             mealType = mealType,
-            details = details
+            details = details,
+            weightGrams = weightGrams
         )
         insertFoodLog(entity)
         Unit
@@ -395,6 +399,7 @@ class FoodRepositoryImpl(
         val updatedCarbs = (foodLog.carbs * ratio).coerceAtLeast(0f)
         val updatedFat = (foodLog.fat * ratio).coerceAtLeast(0f)
         val updatedFiber = (foodLog.fiber * ratio).coerceAtLeast(0f)
+        val updatedWeight = (foodLog.weightGrams * ratio).coerceAtLeast(1f)
 
         val updatedLog = foodLog.copy(
             userId = uid,
@@ -403,7 +408,43 @@ class FoodRepositoryImpl(
             carbs = updatedCarbs,
             fat = updatedFat,
             fiber = updatedFiber,
-            servings = targetServings
+            servings = targetServings,
+            weightGrams = updatedWeight
+        )
+
+        foodLogDao.insertFoodLog(updatedLog)
+        repositoryScope.launch {
+            try {
+                firestoreRepository.syncFoodLog(uid, updatedLog)
+            } catch (ignored: Exception) {}
+        }
+        Unit
+    }
+
+    override suspend fun updateMealWeight(foodLog: FoodLogEntity, newWeightGrams: Float): Unit = withContext(ioDispatcher) {
+        val uid = getAuthenticatedUserId() ?: return@withContext
+        if (foodLog.userId.isNotBlank() && foodLog.userId != uid) {
+            throw SecurityException("Unauthorized: Cannot update meal belonging to another user.")
+        }
+        val safeCurrentWeight = if (foodLog.weightGrams > 0f) foodLog.weightGrams else 100f
+        val targetWeight = newWeightGrams.coerceAtLeast(1f)
+        if (kotlin.math.abs(safeCurrentWeight - targetWeight) < 0.01f) return@withContext
+
+        val ratio = targetWeight / safeCurrentWeight
+        val updatedCalories = kotlin.math.round(foodLog.calories * ratio).toInt().coerceAtLeast(0)
+        val updatedProtein = (foodLog.protein * ratio).coerceAtLeast(0f)
+        val updatedCarbs = (foodLog.carbs * ratio).coerceAtLeast(0f)
+        val updatedFat = (foodLog.fat * ratio).coerceAtLeast(0f)
+        val updatedFiber = (foodLog.fiber * ratio).coerceAtLeast(0f)
+
+        val updatedLog = foodLog.copy(
+            userId = uid,
+            calories = updatedCalories,
+            protein = updatedProtein,
+            carbs = updatedCarbs,
+            fat = updatedFat,
+            fiber = updatedFiber,
+            weightGrams = targetWeight
         )
 
         foodLogDao.insertFoodLog(updatedLog)

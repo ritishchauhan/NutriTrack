@@ -175,7 +175,7 @@ object NutritionReportExporter {
                 paint.color = Color.parseColor("#0F172A")
                 paint.textSize = 10f
                 paint.isFakeBoldText = true
-                canvas.drawText("Trend Weight: ${summary.currentTrendKg} kg", 45f, 310f, paint)
+                canvas.drawText("Weight trend: ${summary.currentTrendKg} kg", 45f, 310f, paint)
                 canvas.drawText("Scale Weight: ${summary.currentActualKg} kg", 45f, 325f, paint)
 
                 val rateStr = "${if (summary.weeklyRateKg > 0) "+" else ""}${summary.weeklyRateKg} kg/week"

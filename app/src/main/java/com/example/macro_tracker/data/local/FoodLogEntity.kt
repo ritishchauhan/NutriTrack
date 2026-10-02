@@ -26,5 +26,6 @@ data class FoodLogEntity(
     val mealType: String = "Breakfast",
     val details: String = "",
     val fiber: Float = 0f,
-    val servings: Int = 1
+    val servings: Int = 1,
+    val weightGrams: Float = 100f
 )

@@ -3,6 +3,7 @@ package com.example.macro_tracker
 import com.example.macro_tracker.data.local.FoodLogDao
 import com.example.macro_tracker.data.local.FoodLogEntity
 import com.example.macro_tracker.data.local.UserProfileManager
+import com.example.macro_tracker.data.local.WeightLogEntity
 import com.example.macro_tracker.data.repository.FirestoreRepository
 import com.example.macro_tracker.data.repository.MealCloudSyncRepository
 import kotlinx.coroutines.flow.Flow
@@ -146,6 +147,15 @@ class MealCloudSyncRulesTest {
                 cloudMealDb.remove(userId)
                 return Result.success(Unit)
             }
+
+            override suspend fun syncWeightLog(userId: String, weightLog: WeightLogEntity): Result<Unit> = Result.success(Unit)
+            override suspend fun deleteWeightLog(userId: String, weightLog: WeightLogEntity): Result<Unit> = Result.success(Unit)
+            override suspend fun getUserWeightLogs(userId: String): Result<List<WeightLogEntity>> = Result.success(emptyList())
+            override suspend fun syncAllWeightLogsToFirestore(userId: String, weightLogs: List<WeightLogEntity>): Result<Unit> = Result.success(Unit)
+            override suspend fun syncActivityMetric(userId: String, recordType: String, value: Double, date: String): Result<Unit> = Result.success(Unit)
+            override suspend fun syncHydrationLog(userId: String, amountLiters: Double, timestamp: Long): Result<Unit> = Result.success(Unit)
+            override suspend fun savePreferenceSettings(userId: String, settings: Map<String, Any>): Result<Unit> = Result.success(Unit)
+            override suspend fun checkServerConnectionTime(): Result<Long> = Result.success(System.currentTimeMillis())
         }
     }
 

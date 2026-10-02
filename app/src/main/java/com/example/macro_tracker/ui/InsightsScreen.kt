@@ -126,7 +126,7 @@ fun InsightsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Download or share your logged nutrition, macros, and trend weight report for consultations with doctors, dietitians, or personal coaches.",
+                        text = "Download or share your logged nutrition, macros, and Weight trend report for consultations with doctors, dietitians, or personal coaches.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )

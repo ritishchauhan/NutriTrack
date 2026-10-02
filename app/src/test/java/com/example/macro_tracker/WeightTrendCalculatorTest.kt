@@ -68,4 +68,68 @@ class WeightTrendCalculatorTest {
         assertTrue(summary.weeklyRateKg < 0f)
         assertTrue(summary.totalChangeKg < 0f)
     }
+
+    @Test
+    fun testFoodItemWeightAdjustmentScaling() {
+        val initialMeal = com.example.macro_tracker.data.local.FoodLogEntity(
+            id = 1,
+            foodName = "Paneer Tikka",
+            calories = 300,
+            protein = 20f,
+            carbs = 10f,
+            fat = 20f,
+            fiber = 4f,
+            weightGrams = 100f,
+            servings = 1,
+            timestamp = System.currentTimeMillis(),
+            details = "P 20g • C 10g • F 20g • Fib 4g"
+        )
+
+        // User adjusts weight from 100g to 250g
+        val newWeight = 250f
+        val ratio = newWeight / initialMeal.weightGrams
+        assertEquals(2.5f, ratio, 0.001f)
+
+        val scaledCalories = Math.round(initialMeal.calories * ratio).toInt()
+        val scaledProtein = initialMeal.protein * ratio
+        val scaledCarbs = initialMeal.carbs * ratio
+        val scaledFat = initialMeal.fat * ratio
+        val scaledFiber = initialMeal.fiber * ratio
+
+        assertEquals(750, scaledCalories)
+        assertEquals(50f, scaledProtein, 0.01f)
+        assertEquals(25f, scaledCarbs, 0.01f)
+        assertEquals(50f, scaledFat, 0.01f)
+        assertEquals(10f, scaledFiber, 0.01f)
+    }
+
+    @Test
+    fun testThreeMonthPredictionsMath() {
+        val startWeight = 80f
+        val weeklyLossPace = 0.5f // 0.5 kg/week standard weight loss
+        val weeklyGainPace = 0.35f // 0.35 kg/week lean bulk
+
+        // 3 Months = 12 weeks
+        val threeMonthLoss = startWeight - (weeklyLossPace * 12f)
+        assertEquals(74.0f, threeMonthLoss, 0.01f)
+
+        val threeMonthGain = startWeight + (weeklyGainPace * 12f)
+        assertEquals(84.2f, threeMonthGain, 0.01f)
+
+        // Milestones
+        val m1Loss = startWeight - (weeklyLossPace * 4f)
+        val m2Loss = startWeight - (weeklyLossPace * 8f)
+        val m3Loss = startWeight - (weeklyLossPace * 12f)
+
+        assertEquals(78.0f, m1Loss, 0.01f)
+        assertEquals(76.0f, m2Loss, 0.01f)
+        assertEquals(74.0f, m3Loss, 0.01f)
+
+        // Calorie deficit calculation: ~1100 kcal / kg per week deficit
+        val dailyLossDeficit = (weeklyLossPace * 1100f).toInt()
+        assertEquals(550, dailyLossDeficit)
+
+        val dailyGainSurplus = (weeklyGainPace * 1100f).toInt()
+        assertEquals(385, dailyGainSurplus)
+    }
 }

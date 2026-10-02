@@ -49,6 +49,9 @@ object DashboardRoute : NavKey
 object FoodRoute : NavKey
 
 @Serializable
+object WeightTrendRoute : NavKey
+
+@Serializable
 object InsightsRoute : NavKey
 
 @Serializable
@@ -312,6 +315,17 @@ fun AppNavigation(
                     )
 
                     DrawerMenuItem(
+                        icon = Icons.Rounded.TrendingUp,
+                        label = "Weight trend",
+                        isSelected = currentRoute == WeightTrendRoute,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            backStack.clear()
+                            backStack.add(WeightTrendRoute)
+                        }
+                    )
+
+                    DrawerMenuItem(
                         icon = Icons.Rounded.PieChart,
                         label = "Insights",
                         isSelected = currentRoute == InsightsRoute,
@@ -450,6 +464,19 @@ fun AppNavigation(
                             )
 
                             NutritrackNavItem(
+                                selected = currentRoute == WeightTrendRoute,
+                                onClick = {
+                                    if (currentRoute != WeightTrendRoute) {
+                                        backStack.clear()
+                                        backStack.add(WeightTrendRoute)
+                                    }
+                                },
+                                icon = Icons.Rounded.TrendingUp,
+                                label = "Weight trend",
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            NutritrackNavItem(
                                 selected = currentRoute == InsightsRoute,
                                 onClick = {
                                     if (currentRoute != InsightsRoute) {
@@ -499,12 +526,25 @@ fun AppNavigation(
                             onNavigateToDietPlans = {
                                 backStack.clear()
                                 backStack.add(DietPlansRoute)
+                            },
+                            onNavigateToWeightTrend = {
+                                backStack.clear()
+                                backStack.add(WeightTrendRoute)
                             }
                         )
                     }
                     entry<FoodRoute> {
                         FoodScreen(
                             foodViewModel = foodViewModel,
+                            profileViewModel = profileViewModel,
+                            onNavigateBack = {
+                                backStack.clear()
+                                backStack.add(DashboardRoute)
+                            }
+                        )
+                    }
+                    entry<WeightTrendRoute> {
+                        WeightTrendScreen(
                             profileViewModel = profileViewModel,
                             onNavigateBack = {
                                 backStack.clear()
