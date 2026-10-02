@@ -46,6 +46,13 @@ class ProfileViewModel(
         }
     }
 
+    fun updateWeightLog(log: com.example.macro_tracker.data.local.WeightLogEntity, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val res = weightRepository?.updateWeightLog(log)
+            onComplete(res?.isSuccess == true)
+        }
+    }
+
     val userName: StateFlow<String> = userRepository.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
     val userNameLiveData: LiveData<String> = userName.asLiveData(viewModelScope.coroutineContext)

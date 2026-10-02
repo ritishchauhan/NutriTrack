@@ -22,6 +22,9 @@ interface WeightLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(logs: List<WeightLogEntity>)
 
+    @androidx.room.Update
+    suspend fun update(weightLog: WeightLogEntity)
+
     @Delete
     suspend fun delete(weightLog: WeightLogEntity)
 
