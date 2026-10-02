@@ -25,6 +25,7 @@ interface WeightRepository {
     val weightTrendSummary: Flow<WeightTrendSummary>
 
     suspend fun logWeight(weightKg: Float, note: String = ""): Result<WeightLogEntity>
+    suspend fun updateWeightLog(weightLog: WeightLogEntity): Result<Unit>
     suspend fun deleteWeightLog(weightLog: WeightLogEntity): Result<Unit>
     suspend fun clearAllWeightLogs(): Result<Unit>
 }
@@ -96,6 +97,25 @@ class WeightRepositoryImpl(
         }
 
         Result.success(inserted)
+    }
+
+    override suspend fun updateWeightLog(weightLog: WeightLogEntity): Result<Unit> = withContext(ioDispatcher) {
+        weightLogDao.update(weightLog)
+        val uid = getAuthenticatedUserId()
+        if (uid != null) {
+            try {
+                userProfileManager.saveBodyStats(weightLog.weightKg, 170f, "MAINTAIN")
+            } catch (ignored: Exception) {}
+            repositoryScope.launch {
+                try {
+                    neonApiClient.uploadUserProfile(uid, mapOf("weightKg" to weightLog.weightKg.toDouble()))
+                } catch (ignored: Exception) {}
+                try {
+                    firestoreRepository.saveUserProfile(uid, mapOf("weightKg" to weightLog.weightKg.toDouble()))
+                } catch (ignored: Exception) {}
+            }
+        }
+        Result.success(Unit)
     }
 
     override suspend fun deleteWeightLog(weightLog: WeightLogEntity): Result<Unit> = withContext(ioDispatcher) {

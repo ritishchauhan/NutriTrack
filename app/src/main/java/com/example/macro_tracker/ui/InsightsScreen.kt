@@ -48,6 +48,7 @@ fun InsightsScreen(
     val waterLogged by profileViewModel.waterLogged.collectAsState()
     val userName by profileViewModel.userName.collectAsState()
     val weightTrendSummary by profileViewModel.weightTrendSummary.collectAsState()
+    val weightLogs by profileViewModel.weightLogs.collectAsState()
 
     var selectedRange by remember { mutableStateOf("7 days") }
     val rangeOptions = listOf("7 days", "30 days", "90 days")
@@ -530,8 +531,15 @@ fun InsightsScreen(
             item {
                 com.example.macro_tracker.ui.components.WeightTrendCard(
                     summary = weightTrendSummary,
+                    weightLogs = weightLogs,
                     onLogWeight = { weight, note ->
                         profileViewModel.logWeight(weight, note)
+                    },
+                    onUpdateWeight = { log ->
+                        profileViewModel.updateWeightLog(log)
+                    },
+                    onDeleteWeight = { log ->
+                        profileViewModel.deleteWeightLog(log)
                     }
                 )
             }

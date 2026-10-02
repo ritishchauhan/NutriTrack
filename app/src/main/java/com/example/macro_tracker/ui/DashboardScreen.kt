@@ -896,12 +896,25 @@ fun DashboardScreen(
             // Weight Trend (MacroFactor EMA Smoothing)
             item {
                 val weightSummary by profileViewModel.weightTrendSummaryLiveData.observeAsState(com.example.macro_tracker.util.WeightTrendSummary())
+                val weightLogs by profileViewModel.weightLogsLiveData.observeAsState(emptyList())
                 com.example.macro_tracker.ui.components.WeightTrendCard(
                     summary = weightSummary,
+                    weightLogs = weightLogs,
                     onLogWeight = { weight, note ->
                         profileViewModel.logWeight(weight, note)
+                    },
+                    onUpdateWeight = { log ->
+                        profileViewModel.updateWeightLog(log)
+                    },
+                    onDeleteWeight = { log ->
+                        profileViewModel.deleteWeightLog(log)
                     }
                 )
+            }
+
+            // Google Health Connect (Daily Steps & Calories Burned)
+            item {
+                com.example.macro_tracker.ui.components.HealthConnectCard()
             }
 
             // Meals Section Header
