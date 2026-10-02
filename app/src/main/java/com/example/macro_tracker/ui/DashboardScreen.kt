@@ -41,6 +41,7 @@ fun DashboardScreen(
     onNavigateToLog: () -> Unit,
     onNavigateToInsights: () -> Unit,
     onNavigateToDietPlans: () -> Unit = {},
+    onNavigateToWeightTrend: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Observing lifecycle-aware LiveData for responsive, lifecycle-aware UI updates
@@ -74,6 +75,7 @@ fun DashboardScreen(
     val formattedDate = selectedDate.format(dateFormatter)
 
     var itemToDelete by remember { mutableStateOf<FoodLogEntity?>(null) }
+    var mealToAdjustQuantity by remember { mutableStateOf<FoodLogEntity?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showOnboardingDialog by remember { mutableStateOf(false) }
@@ -308,6 +310,19 @@ fun DashboardScreen(
                 TextButton(onClick = { itemToDelete = null }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (mealToAdjustQuantity != null) {
+        com.example.macro_tracker.ui.components.AdjustMealQuantityDialog(
+            log = mealToAdjustQuantity!!,
+            onDismissRequest = { mealToAdjustQuantity = null },
+            onUpdateWeight = { newWeight ->
+                mealToAdjustQuantity?.let { foodViewModel.updateMealWeight(it, newWeight) }
+            },
+            onDeleteMeal = {
+                mealToAdjustQuantity?.let { foodViewModel.deleteFoodLog(it) }
             }
         )
     }
@@ -910,6 +925,42 @@ fun DashboardScreen(
                         profileViewModel.deleteWeightLog(log)
                     }
                 )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Surface(
+                    onClick = onNavigateToWeightTrend,
+                    shape = RoundedCornerShape(14.dp),
+                    color = BrandGreenPill,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Rounded.TrendingUp,
+                                contentDescription = null,
+                                tint = BrandGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "View 3-Month Predictions & Trend Graph",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = BrandGreenDark
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = BrandGreenDark,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
 
             // Google Health Connect (Daily Steps & Calories Burned)
@@ -1128,7 +1179,7 @@ fun DashboardScreen(
                 ) { log ->
                     DashboardMealItem(
                         log = log,
-                        onClick = { itemToDelete = log },
+                        onClick = { mealToAdjustQuantity = log },
                         onIncrement = {
                             foodViewModel.updateMealServings(log, log.servings + 1)
                         },
@@ -1136,7 +1187,7 @@ fun DashboardScreen(
                             if (log.servings > 1) {
                                 foodViewModel.updateMealServings(log, log.servings - 1)
                             } else {
-                                itemToDelete = log
+                                mealToAdjustQuantity = log
                             }
                         }
                     )
@@ -1258,12 +1309,31 @@ fun DashboardMealItem(
                     ),
                     color = TextPrimary
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (log.details.isNotBlank()) log.details else "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = TextSecondary
-                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = BrandGreenPill
+                    ) {
+                        Text(
+                            text = "${log.weightGrams.toInt()} gm",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            ),
+                            color = BrandGreenDark,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (log.details.isNotBlank()) log.details else "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(6.dp))

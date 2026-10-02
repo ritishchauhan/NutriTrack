@@ -81,7 +81,7 @@ fun WeightTrendCard(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "MacroFactor uses daily weigh-ins to smooth out sodium & water fluctuations into a steady Trend Weight.",
+                        text = "MacroFactor uses daily weigh-ins to smooth out sodium & water fluctuations into a steady Weight trend.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )
@@ -179,7 +179,7 @@ fun WeightTrendCard(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Correct your weigh-in value. Your EMA Trend Weight will automatically recalculate.",
+                        text = "Correct your weigh-in value. Your EMA Weight trend will automatically recalculate.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )
@@ -470,7 +470,7 @@ fun WeightTrendCard(
                     }
                     Column {
                         Text(
-                            text = "Trend Weight",
+                            text = "Weight trend",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary
                         )

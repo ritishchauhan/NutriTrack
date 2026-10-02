@@ -269,7 +269,8 @@ class FoodViewModel(
         carbs: Float = 50f,
         fat: Float = 15f,
         fiber: Float = 0f,
-        details: String = "Balanced meal"
+        details: String = "Balanced meal",
+        weightGrams: Float = 100f
     ) {
         viewModelScope.launch {
             foodRepository.quickAddMeal(
@@ -281,7 +282,8 @@ class FoodViewModel(
                 fat = fat,
                 fiber = fiber,
                 details = details,
-                date = _selectedDate.value
+                date = _selectedDate.value,
+                weightGrams = weightGrams
             )
         }
     }
@@ -292,6 +294,16 @@ class FoodViewModel(
                 foodRepository.deleteFoodLog(foodLog)
             } else {
                 foodRepository.updateMealServings(foodLog, newServings)
+            }
+        }
+    }
+
+    fun updateMealWeight(foodLog: FoodLogEntity, newWeightGrams: Float) {
+        viewModelScope.launch {
+            if (newWeightGrams <= 0f) {
+                foodRepository.deleteFoodLog(foodLog)
+            } else {
+                foodRepository.updateMealWeight(foodLog, newWeightGrams)
             }
         }
     }
