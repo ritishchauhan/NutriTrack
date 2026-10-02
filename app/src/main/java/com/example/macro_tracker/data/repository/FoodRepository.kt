@@ -64,7 +64,6 @@ class FoodRepositoryImpl(
     private val foodLogDao: FoodLogDao,
     private val nutritionApi: NutritionApi,
     private val firestoreRepository: FirestoreRepository = FirestoreRepositoryImpl(),
-    private val neonApiClient: com.example.macro_tracker.data.remote.neon.NeonApiClient = com.example.macro_tracker.data.remote.neon.NeonApiClient(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FoodRepository {
 
@@ -297,7 +296,6 @@ class FoodRepositoryImpl(
         val rowId = foodLogDao.insertFoodLog(entityWithUser)
         val syncEntity = if (entityWithUser.id == 0 && rowId > 0) entityWithUser.copy(id = rowId.toInt()) else entityWithUser
         repositoryScope.launch {
-            neonApiClient.uploadMeals(uid, listOf(syncEntity))
             try {
                 firestoreRepository.syncFoodLog(uid, syncEntity)
             } catch (ignored: Exception) {}
@@ -410,7 +408,6 @@ class FoodRepositoryImpl(
 
         foodLogDao.insertFoodLog(updatedLog)
         repositoryScope.launch {
-            neonApiClient.uploadSingleMeal(uid, updatedLog)
             try {
                 firestoreRepository.syncFoodLog(uid, updatedLog)
             } catch (ignored: Exception) {}
@@ -426,7 +423,6 @@ class FoodRepositoryImpl(
         val target = foodLog.copy(userId = uid)
         foodLogDao.deleteFoodLog(target)
         repositoryScope.launch {
-            neonApiClient.deleteMeal(uid, target)
             try {
                 firestoreRepository.deleteFoodLog(uid, target.id, target.timestamp, target.foodName)
             } catch (ignored: Exception) {}
@@ -440,7 +436,6 @@ class FoodRepositoryImpl(
         val endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
         foodLogDao.deleteFoodLogsByDateRange(uid, startOfDay, endOfDay)
         repositoryScope.launch {
-            neonApiClient.deleteMealsByDateRange(uid, startOfDay, endOfDay)
             try {
                 firestoreRepository.deleteFoodLogsByDateRange(uid, startOfDay, endOfDay)
             } catch (ignored: Exception) {}
@@ -479,7 +474,6 @@ class FoodRepositoryImpl(
 
         foodLogDao.insertAll(newMeals)
         repositoryScope.launch {
-            neonApiClient.uploadMeals(uid, newMeals)
             try {
                 firestoreRepository.syncAllFoodLogsToFirestore(uid, newMeals)
             } catch (ignored: Exception) {}
@@ -492,7 +486,6 @@ class FoodRepositoryImpl(
         val uid = getAuthenticatedUserId() ?: return@withContext
         foodLogDao.deleteAllFoodLogsForUser(uid)
         repositoryScope.launch {
-            neonApiClient.clearUserMeals(uid)
             try {
                 firestoreRepository.clearUserFoodLogs(uid)
             } catch (ignored: Exception) {}
@@ -506,7 +499,6 @@ class FoodRepositoryImpl(
         }
         try {
             foodLogDao.deleteAllFoodLogsForUser(userId)
-            neonApiClient.clearUserMeals(userId)
             firestoreRepository.clearUserFoodLogs(userId)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -516,30 +508,7 @@ class FoodRepositoryImpl(
 
     override suspend fun syncRemoteMeals(): Result<Unit> = withContext(ioDispatcher) {
         val uid = getAuthenticatedUserId() ?: return@withContext Result.success(Unit)
-        try {
-            val neonResult = neonApiClient.fetchMeals(uid)
-            val remoteMeals = (neonResult.getOrNull() ?: emptyList()).map { it.copy(userId = uid) }
-            val localLogs = foodLogDao.getAllFoodLogsList(uid)
-            val localKeys = localLogs.map { "${it.timestamp}_${it.foodName.trim().lowercase()}" }.toSet()
-
-            val missingFromLocal = remoteMeals.filter { "${it.timestamp}_${it.foodName.trim().lowercase()}" !in localKeys }
-            if (missingFromLocal.isNotEmpty()) {
-                foodLogDao.insertAll(missingFromLocal)
-            }
-
-            val remoteKeys = remoteMeals.map { "${it.timestamp}_${it.foodName.trim().lowercase()}" }.toSet()
-            // Strictly upload only local logs tagged with this authenticated user ID
-            val missingFromRemote = localLogs.filter {
-                it.userId == uid && "${it.timestamp}_${it.foodName.trim().lowercase()}" !in remoteKeys
-            }
-            if (missingFromRemote.isNotEmpty()) {
-                neonApiClient.uploadMeals(uid, missingFromRemote)
-            }
-
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        firestoreRepository.syncRemoteHistoryToLocal(uid, foodLogDao)
     }
 }
 

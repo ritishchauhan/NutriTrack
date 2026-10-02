@@ -30,7 +30,15 @@ interface FirestoreRepository {
         foodLogDao: FoodLogDao,
         userProfileManager: UserProfileManager? = null
     ): Result<Unit>
+    suspend fun syncWeightLog(userId: String, weightLog: com.example.macro_tracker.data.local.WeightLogEntity): Result<Unit>
+    suspend fun deleteWeightLog(userId: String, weightLog: com.example.macro_tracker.data.local.WeightLogEntity): Result<Unit>
+    suspend fun getUserWeightLogs(userId: String): Result<List<com.example.macro_tracker.data.local.WeightLogEntity>>
+    suspend fun syncAllWeightLogsToFirestore(userId: String, weightLogs: List<com.example.macro_tracker.data.local.WeightLogEntity>): Result<Unit>
+    suspend fun syncActivityMetric(userId: String, recordType: String, value: Double, date: String): Result<Unit>
+    suspend fun syncHydrationLog(userId: String, amountLiters: Double, timestamp: Long): Result<Unit>
+    suspend fun savePreferenceSettings(userId: String, settings: Map<String, Any>): Result<Unit>
     suspend fun deleteUserAccountData(userId: String): Result<Unit>
+    suspend fun checkServerConnectionTime(): Result<Long>
 }
 
 class FirestoreRepositoryImpl(
@@ -61,8 +69,25 @@ class FirestoreRepositoryImpl(
             return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
         }
         try {
-            val sanitized = HashMap<String, Any>(profileData)
-            sanitized["uid"] = userId
+            val sanitized = HashMap<String, Any>()
+            sanitized["userId"] = userId
+            (profileData["name"] ?: profileData["displayName"])?.let { sanitized["name"] = it.toString() }
+            (profileData["email"])?.let { sanitized["email"] = it.toString() }
+
+            (profileData["calorieTarget"] ?: profileData["calorieGoal"])?.let { sanitized["calorieTarget"] = (it as Number).toInt() }
+            (profileData["proteinTarget"] ?: profileData["proteinGoal"])?.let { sanitized["proteinTarget"] = (it as Number).toInt() }
+            (profileData["carbsTarget"] ?: profileData["carbsGoal"])?.let { sanitized["carbsTarget"] = (it as Number).toInt() }
+            (profileData["fatTarget"] ?: profileData["fatGoal"])?.let { sanitized["fatTarget"] = (it as Number).toInt() }
+            (profileData["fiberTarget"] ?: profileData["fiberGoal"])?.let { sanitized["fiberTarget"] = (it as Number).toInt() }
+            (profileData["waterTarget"] ?: profileData["waterGoal"])?.let { sanitized["waterTarget"] = (it as Number).toDouble() }
+
+            profileData["waterLogged"]?.let { sanitized["waterLogged"] = (it as Number).toDouble() }
+            profileData["streakDays"]?.let { sanitized["streakDays"] = (it as Number).toInt() }
+            (profileData["weightKg"] ?: profileData["userWeightKg"])?.let { sanitized["weightKg"] = (it as Number).toDouble() }
+            (profileData["heightCm"] ?: profileData["userHeightCm"])?.let { sanitized["heightCm"] = (it as Number).toDouble() }
+            (profileData["fitnessGoal"] ?: profileData["userFitnessGoal"])?.let { sanitized["fitnessGoal"] = it.toString() }
+            profileData["dietaryPreference"]?.let { sanitized["dietaryPreference"] = it.toString() }
+            profileData["activityLevel"]?.let { sanitized["activityLevel"] = it.toString() }
             sanitized["updatedAt"] = System.currentTimeMillis()
 
             firestore.collection(USERS_COLLECTION)
@@ -111,14 +136,17 @@ class FirestoreRepositoryImpl(
             val data = hashMapOf(
                 "id" to foodLog.id,
                 "foodName" to foodLog.foodName,
-                "calories" to foodLog.calories,
+                "calories" to foodLog.calories.toDouble(),
                 "protein" to foodLog.protein.toDouble(),
                 "carbs" to foodLog.carbs.toDouble(),
                 "fat" to foodLog.fat.toDouble(),
                 "fiber" to foodLog.fiber.toDouble(),
+                "portionMultiplier" to foodLog.servings.toDouble(),
                 "servings" to foodLog.servings,
-                "timestamp" to foodLog.timestamp,
                 "mealType" to foodLog.mealType,
+                "barcode" to "",
+                "imageUrl" to "",
+                "timestamp" to foodLog.timestamp,
                 "details" to foodLog.details,
                 "userId" to userId
             )
@@ -310,13 +338,17 @@ class FirestoreRepositoryImpl(
                     val data = hashMapOf(
                         "id" to log.id,
                         "foodName" to log.foodName,
-                        "calories" to log.calories,
+                        "calories" to log.calories.toDouble(),
                         "protein" to log.protein.toDouble(),
                         "carbs" to log.carbs.toDouble(),
                         "fat" to log.fat.toDouble(),
                         "fiber" to log.fiber.toDouble(),
-                        "timestamp" to log.timestamp,
+                        "portionMultiplier" to log.servings.toDouble(),
+                        "servings" to log.servings,
                         "mealType" to log.mealType,
+                        "barcode" to "",
+                        "imageUrl" to "",
+                        "timestamp" to log.timestamp,
                         "details" to log.details,
                         "userId" to userId
                     )
@@ -349,27 +381,30 @@ class FirestoreRepositoryImpl(
 
             if (profileSnapshot.exists() && userProfileManager != null) {
                 val data = profileSnapshot.data ?: emptyMap()
-                (data["displayName"] as? String)?.let { if (it.isNotBlank()) userProfileManager.saveUserName(it) }
+                val name = (data["name"] ?: data["displayName"]) as? String
+                if (!name.isNullOrBlank()) userProfileManager.saveUserName(name)
+
                 (data["email"] as? String)?.let { if (it.isNotBlank()) userProfileManager.saveUserGmail(it) }
                 (data["dietaryPreference"] as? String)?.let { userProfileManager.saveDietaryPreference(it) }
                 (data["activityLevel"] as? String)?.let { userProfileManager.saveActivityLevel(it) }
 
-                val cal = (data["calorieGoal"] as? Number)?.toInt()
-                val prot = (data["proteinGoal"] as? Number)?.toInt()
-                val carbs = (data["carbsGoal"] as? Number)?.toInt()
-                val fat = (data["fatGoal"] as? Number)?.toInt()
-                val rawWater = (data["waterGoal"] as? Number)?.toFloat()
-                val fiber = (data["fiberGoal"] as? Number)?.toInt()
+                val cal = (data["calorieTarget"] ?: data["calorieGoal"]) as? Number
+                val prot = (data["proteinTarget"] ?: data["proteinGoal"]) as? Number
+                val carbs = (data["carbsTarget"] ?: data["carbsGoal"]) as? Number
+                val fat = (data["fatTarget"] ?: data["fatGoal"]) as? Number
+                val rawWater = (data["waterTarget"] ?: data["waterGoal"]) as? Number
+                val fiber = (data["fiberTarget"] ?: data["fiberGoal"]) as? Number
                 if (cal != null && prot != null && carbs != null && fat != null && rawWater != null) {
-                    val water = if (rawWater > 30f) rawWater / 1000f else rawWater
-                    userProfileManager.saveGoals(cal, prot, carbs, fat, water, fiber)
+                    val rawWaterFloat = rawWater.toFloat()
+                    val water = if (rawWaterFloat > 30f) rawWaterFloat / 1000f else rawWaterFloat
+                    userProfileManager.saveGoals(cal.toInt(), prot.toInt(), carbs.toInt(), fat.toInt(), water, fiber?.toInt() ?: 25)
                 }
 
-                val weight = (data["userWeightKg"] as? Number)?.toFloat()
-                val height = (data["userHeightCm"] as? Number)?.toFloat()
-                val goal = (data["userFitnessGoal"] as? String)
+                val weight = (data["weightKg"] ?: data["userWeightKg"]) as? Number
+                val height = (data["heightCm"] ?: data["userHeightCm"]) as? Number
+                val goal = (data["fitnessGoal"] ?: data["userFitnessGoal"]) as? String
                 if (weight != null && height != null && goal != null) {
-                    userProfileManager.saveBodyStats(weight, height, goal)
+                    userProfileManager.saveBodyStats(weight.toFloat(), height.toFloat(), goal)
                 }
             }
 
@@ -409,12 +444,207 @@ class FirestoreRepositoryImpl(
         }
     }
 
+    override suspend fun syncWeightLog(
+        userId: String,
+        weightLog: com.example.macro_tracker.data.local.WeightLogEntity
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val docId = "wlog_${weightLog.timestamp}"
+            val data = hashMapOf(
+                "userId" to userId,
+                "weightKg" to weightLog.weightKg.toDouble(),
+                "timestamp" to weightLog.timestamp,
+                "note" to weightLog.note
+            )
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("weight_logs")
+                .document(docId)
+                .set(data, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error syncing weight log to Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteWeightLog(
+        userId: String,
+        weightLog: com.example.macro_tracker.data.local.WeightLogEntity
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val docId = "wlog_${weightLog.timestamp}"
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("weight_logs")
+                .document(docId)
+                .delete()
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting weight log from Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUserWeightLogs(
+        userId: String
+    ): Result<List<com.example.macro_tracker.data.local.WeightLogEntity>> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val snapshot = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("weight_logs")
+                .get()
+                .await()
+
+            val logs = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val weightKg = (doc.getDouble("weightKg") ?: 70.0).toFloat()
+                    val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                    val note = doc.getString("note") ?: ""
+                    com.example.macro_tracker.data.local.WeightLogEntity(
+                        userId = userId,
+                        weightKg = weightKg,
+                        timestamp = timestamp,
+                        note = note
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            Result.success(logs)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user weight logs from Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun syncAllWeightLogsToFirestore(
+        userId: String,
+        weightLogs: List<com.example.macro_tracker.data.local.WeightLogEntity>
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank() || weightLogs.isEmpty()) return@withContext Result.success(Unit)
+        try {
+            val logsRef = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("weight_logs")
+
+            weightLogs.chunked(450).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { log ->
+                    val docRef = logsRef.document("wlog_${log.timestamp}")
+                    val data = hashMapOf(
+                        "userId" to userId,
+                        "weightKg" to log.weightKg.toDouble(),
+                        "timestamp" to log.timestamp,
+                        "note" to log.note
+                    )
+                    batch.set(docRef, data, SetOptions.merge())
+                }
+                batch.commit().await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error batch syncing weight logs to Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun syncActivityMetric(
+        userId: String,
+        recordType: String,
+        value: Double,
+        date: String
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val docId = "metric_${recordType}_$date"
+            val data = hashMapOf(
+                "userId" to userId,
+                "recordType" to recordType,
+                "value" to value,
+                "date" to date,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("activity_metrics")
+                .document(docId)
+                .set(data, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun syncHydrationLog(
+        userId: String,
+        amountLiters: Double,
+        timestamp: Long
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val docId = "water_$timestamp"
+            val data = hashMapOf(
+                "userId" to userId,
+                "amountLiters" to amountLiters,
+                "timestamp" to timestamp
+            )
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("hydration_logs")
+                .document(docId)
+                .set(data, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun savePreferenceSettings(
+        userId: String,
+        settings: Map<String, Any>
+    ): Result<Unit> = withContext(ioDispatcher) {
+        if (userId.isBlank()) return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
+        try {
+            val data = HashMap(settings)
+            data["userId"] = userId
+            data["updatedAt"] = System.currentTimeMillis()
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection("preference_settings")
+                .document("current")
+                .set(data, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun deleteUserAccountData(userId: String): Result<Unit> = withContext(ioDispatcher) {
         if (userId.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
         }
         try {
             clearUserFoodLogs(userId)
+            val subcollections = listOf("weight_logs", "activity_metrics", "hydration_logs", "preference_settings")
+            for (sub in subcollections) {
+                try {
+                    val snap = firestore.collection(USERS_COLLECTION).document(userId).collection(sub).get().await()
+                    snap.documents.chunked(450).forEach { chunk ->
+                        val batch = firestore.batch()
+                        chunk.forEach { batch.delete(it.reference) }
+                        batch.commit().await()
+                    }
+                } catch (ignored: Exception) {}
+            }
             firestore.collection(USERS_COLLECTION).document(userId).delete().await()
             Log.d(TAG, "Deleted Firestore user account document for $userId")
             Result.success(Unit)
@@ -423,4 +653,17 @@ class FirestoreRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun checkServerConnectionTime(): Result<Long> = withContext(ioDispatcher) {
+        try {
+            val start = System.currentTimeMillis()
+            firestore.collection(USERS_COLLECTION).limit(1).get().await()
+            val duration = System.currentTimeMillis() - start
+            Result.success(duration)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error testing Firestore connection latency", e)
+            Result.failure(e)
+        }
+    }
 }
+

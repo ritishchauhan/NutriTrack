@@ -1,7 +1,6 @@
 package com.example.macro_tracker.data.repository
 
 import com.example.macro_tracker.data.local.UserProfileManager
-import com.example.macro_tracker.data.remote.neon.NeonApiClient
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -56,7 +55,6 @@ interface UserRepository {
 class UserRepositoryImpl(
     private val userProfileManager: UserProfileManager,
     private val firestoreRepository: FirestoreRepository = FirestoreRepositoryImpl(),
-    private val neonApiClient: NeonApiClient = NeonApiClient(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : UserRepository {
 
@@ -93,9 +91,6 @@ class UserRepositoryImpl(
         if (user.isAnonymous || user.uid.startsWith("guest_") || user.uid == "guest") return
         val uid = user.uid
         repositoryScope.launch {
-            try {
-                neonApiClient.uploadUserProfile(uid, fieldMap)
-            } catch (ignored: Exception) {}
             try {
                 firestoreRepository.saveUserProfile(uid, fieldMap)
             } catch (ignored: Exception) {}

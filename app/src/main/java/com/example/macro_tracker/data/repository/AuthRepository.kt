@@ -173,7 +173,7 @@ class FirebaseAuthRepositoryImpl(
             _currentUser.value = domainUser
             userProfileManager.setActiveUser(domainUser.uid)
 
-            // Sync account-specific data from Neon cloud backend & Firestore
+            // Sync account-specific data from Cloud Firestore
             mealCloudSyncRepository.syncAccountData(domainUser.uid)
             syncUserToFirestore(domainUser)
             Result.success(domainUser)
@@ -361,7 +361,7 @@ class FirebaseAuthRepositoryImpl(
 
     /**
      * Sign Out: Ends the active session and clears active credentials from memory.
-     * Server data on Neon & Firestore is NOT deleted.
+     * Server data on Cloud Firestore is NOT deleted.
      */
     override suspend fun signOut(wipeLocalData: Boolean) = withContext(ioDispatcher) {
         val oldUserId = _currentUser.value?.uid
@@ -385,7 +385,7 @@ class FirebaseAuthRepositoryImpl(
 
     /**
      * Account Deletion: Treated as a completely separate operation from sign out.
-     * Permanently purges user data from Neon, Firestore, and local storage, then deletes the auth account.
+     * Permanently purges user data from Cloud Firestore and local storage, then deletes the auth account.
      */
     override suspend fun deleteAccount(): Result<Unit> = withContext(ioDispatcher) {
         val user = firebaseAuth?.currentUser

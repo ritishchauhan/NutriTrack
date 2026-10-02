@@ -3,7 +3,6 @@ package com.example.macro_tracker.data.repository
 import com.example.macro_tracker.data.local.UserProfileManager
 import com.example.macro_tracker.data.local.WeightLogDao
 import com.example.macro_tracker.data.local.WeightLogEntity
-import com.example.macro_tracker.data.remote.neon.NeonApiClient
 import com.example.macro_tracker.util.WeightTrendCalculator
 import com.example.macro_tracker.util.WeightTrendSummary
 import com.google.firebase.auth.FirebaseAuth
@@ -35,7 +34,6 @@ class WeightRepositoryImpl(
     private val weightLogDao: WeightLogDao,
     private val userProfileManager: UserProfileManager,
     private val firestoreRepository: FirestoreRepository = FirestoreRepositoryImpl(),
-    private val neonApiClient: NeonApiClient = NeonApiClient(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : WeightRepository {
 
@@ -89,7 +87,7 @@ class WeightRepositoryImpl(
 
         repositoryScope.launch {
             try {
-                neonApiClient.uploadUserProfile(uid, mapOf("weightKg" to weightKg.toDouble()))
+                firestoreRepository.syncWeightLog(uid, inserted)
             } catch (ignored: Exception) {}
             try {
                 firestoreRepository.saveUserProfile(uid, mapOf("weightKg" to weightKg.toDouble()))
@@ -108,7 +106,7 @@ class WeightRepositoryImpl(
             } catch (ignored: Exception) {}
             repositoryScope.launch {
                 try {
-                    neonApiClient.uploadUserProfile(uid, mapOf("weightKg" to weightLog.weightKg.toDouble()))
+                    firestoreRepository.syncWeightLog(uid, weightLog)
                 } catch (ignored: Exception) {}
                 try {
                     firestoreRepository.saveUserProfile(uid, mapOf("weightKg" to weightLog.weightKg.toDouble()))
@@ -120,6 +118,14 @@ class WeightRepositoryImpl(
 
     override suspend fun deleteWeightLog(weightLog: WeightLogEntity): Result<Unit> = withContext(ioDispatcher) {
         weightLogDao.delete(weightLog)
+        val uid = getAuthenticatedUserId()
+        if (uid != null) {
+            repositoryScope.launch {
+                try {
+                    firestoreRepository.deleteWeightLog(uid, weightLog)
+                } catch (ignored: Exception) {}
+            }
+        }
         Result.success(Unit)
     }
 
