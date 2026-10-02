@@ -941,7 +941,7 @@ fun DashboardScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                                imageVector = Icons.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = BrandGreen,
                                 modifier = Modifier.size(18.dp)
