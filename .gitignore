@@ -19,4 +19,5 @@ local.properties
 *.sql
 .env*
 .env.local
-
+github_push/
+app/release/
