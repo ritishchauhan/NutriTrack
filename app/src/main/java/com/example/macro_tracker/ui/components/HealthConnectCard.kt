@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DirectionsRun
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -85,7 +87,7 @@ fun HealthConnectCard(
                             .background(EnergyAmber.copy(alpha = 0.15f))
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.DirectionsRun,
+                            imageVector = Icons.AutoMirrored.Rounded.DirectionsRun,
                             contentDescription = null,
                             tint = EnergyAmber,
                             modifier = Modifier.size(18.dp)
@@ -243,7 +245,7 @@ fun HealthConnectCard(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Rounded.DirectionsWalk,
+                                        imageVector = Icons.AutoMirrored.Rounded.DirectionsWalk,
                                         contentDescription = null,
                                         tint = BrandGreen,
                                         modifier = Modifier.size(16.dp)

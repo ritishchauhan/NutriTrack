@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -315,7 +316,7 @@ fun AppNavigation(
                     )
 
                     DrawerMenuItem(
-                        icon = Icons.Rounded.TrendingUp,
+                        icon = Icons.AutoMirrored.Rounded.TrendingUp,
                         label = "Weight trend",
                         isSelected = currentRoute == WeightTrendRoute,
                         onClick = {
@@ -471,7 +472,7 @@ fun AppNavigation(
                                         backStack.add(WeightTrendRoute)
                                     }
                                 },
-                                icon = Icons.Rounded.TrendingUp,
+                                icon = Icons.AutoMirrored.Rounded.TrendingUp,
                                 label = "Weight trend",
                                 modifier = Modifier.weight(1f)
                             )

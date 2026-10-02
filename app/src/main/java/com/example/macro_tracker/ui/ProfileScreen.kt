@@ -452,6 +452,17 @@ fun ProfileDialog(
                         }
                     }
                 }
+
+                // App Version Footer
+                Text(
+                    text = "Nutritrack v${com.example.macro_tracker.BuildConfig.VERSION_NAME} • Cloud Sync Enabled",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    color = TextMuted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         },
         confirmButton = {
