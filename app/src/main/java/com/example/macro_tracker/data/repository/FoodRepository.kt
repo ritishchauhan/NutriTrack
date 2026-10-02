@@ -49,6 +49,7 @@ interface FoodRepository {
     suspend fun updateMealServings(foodLog: FoodLogEntity, newServings: Int)
     suspend fun deleteFoodLog(foodLog: FoodLogEntity)
     suspend fun deleteFoodLogsForDate(date: LocalDate)
+    suspend fun copyMealsFromDate(sourceDate: LocalDate, targetDate: LocalDate, mealType: String? = null): Result<Int>
     suspend fun clearAllFoodLogs()
     suspend fun deleteAccountMeals(userId: String): Result<Unit>
     suspend fun syncRemoteMeals(): Result<Unit>
@@ -445,6 +446,46 @@ class FoodRepositoryImpl(
             } catch (ignored: Exception) {}
         }
         Unit
+    }
+
+    override suspend fun copyMealsFromDate(
+        sourceDate: LocalDate,
+        targetDate: LocalDate,
+        mealType: String?
+    ): Result<Int> = withContext(ioDispatcher) {
+        val uid = getAuthenticatedUserId() ?: return@withContext Result.failure(IllegalStateException("No user logged in"))
+        val startOfDay = sourceDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endOfDay = sourceDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+
+        val sourceLogs = foodLogDao.getFoodLogsByDateRange(uid, startOfDay, endOfDay).first()
+        val filteredLogs = if (!mealType.isNullOrBlank() && mealType != "All") {
+            sourceLogs.filter { it.mealType.equals(mealType, ignoreCase = true) }
+        } else {
+            sourceLogs
+        }
+
+        if (filteredLogs.isEmpty()) {
+            return@withContext Result.success(0)
+        }
+
+        val targetBaseTimestamp = targetDate.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val newMeals = filteredLogs.mapIndexed { index, meal ->
+            meal.copy(
+                id = 0,
+                userId = uid,
+                timestamp = targetBaseTimestamp + (index * 1000L)
+            )
+        }
+
+        foodLogDao.insertAll(newMeals)
+        repositoryScope.launch {
+            neonApiClient.uploadMeals(uid, newMeals)
+            try {
+                firestoreRepository.syncAllFoodLogsToFirestore(uid, newMeals)
+            } catch (ignored: Exception) {}
+        }
+
+        Result.success(newMeals.size)
     }
 
     override suspend fun clearAllFoodLogs(): Unit = withContext(ioDispatcher) {

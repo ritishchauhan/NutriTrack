@@ -12,6 +12,10 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.BrightnessAuto
+import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -220,7 +224,138 @@ fun ProfileDialog(
                     }
                 }
 
-                // Data Management: Reset / Clear all meals
+                // Theme Mode Selector
+                HorizontalDivider(color = NutritrackBorderLight, thickness = 1.dp)
+
+                Column {
+                    Text(
+                        text = "App Theme",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val currentThemeMode by viewModel.themeModeLiveData.observeAsState("SYSTEM")
+                        val themes = listOf(
+                            Triple("SYSTEM", "System", Icons.Rounded.BrightnessAuto),
+                            Triple("LIGHT", "Light", Icons.Rounded.LightMode),
+                            Triple("DARK", "Dark", Icons.Rounded.DarkMode)
+                        )
+                        themes.forEach { (mode, label, icon) ->
+                            val isSelected = currentThemeMode.equals(mode, ignoreCase = true)
+                            Surface(
+                                onClick = { viewModel.setThemeMode(mode) },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) BrandGreenPill else NutritrackBg,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) BrandGreen else NutritrackBorder
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) BrandGreen else TextSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 12.sp
+                                        ),
+                                        color = if (isSelected) BrandGreen else TextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Reminders & Alerts
+                HorizontalDivider(color = NutritrackBorderLight, thickness = 1.dp)
+
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var remindersEnabled by remember { mutableStateOf(true) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Daily Meal & Water Reminders",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Smart alerts for meals, hydration & streak protection",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Switch(
+                        checked = remindersEnabled,
+                        onCheckedChange = { isChecked ->
+                            remindersEnabled = isChecked
+                            if (isChecked) {
+                                com.example.macro_tracker.util.ReminderScheduler.scheduleAllReminders(context)
+                            } else {
+                                com.example.macro_tracker.util.ReminderScheduler.cancelAllReminders(context)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = BrandGreen,
+                            uncheckedThumbColor = NutritrackBorder,
+                            uncheckedTrackColor = NutritrackBg
+                        )
+                    )
+                }
+
+                // Data & Reports Section
+                HorizontalDivider(color = NutritrackBorderLight, thickness = 1.dp)
+
+                Column {
+                    Text(
+                        text = "Data & Reports",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val intent = com.example.macro_tracker.util.NutritionReportExporter.exportCsvReport(
+                                context = context,
+                                userName = currentUserName,
+                                foodLogs = emptyList(),
+                                rangeDays = 30
+                            )
+                            if (intent != null) {
+                                com.example.macro_tracker.util.NutritionReportExporter.shareReport(context, intent)
+                            }
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandGreen)
+                    ) {
+                        Icon(Icons.Rounded.TableChart, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Export Nutrition Data (CSV)", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
                 // Account Section
                 if (authViewModel != null) {
                     HorizontalDivider(color = NutritrackBorderLight, thickness = 1.dp)
@@ -234,7 +369,7 @@ fun ProfileDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = NutritrackDark,
+                            color = NutritrackBg,
                             border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
                             modifier = Modifier.fillMaxWidth()
                         ) {

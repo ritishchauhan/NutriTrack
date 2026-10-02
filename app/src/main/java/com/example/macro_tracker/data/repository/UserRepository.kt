@@ -32,6 +32,7 @@ interface UserRepository {
     val userWeightKg: Flow<Float>
     val userHeightCm: Flow<Float>
     val userFitnessGoal: Flow<String>
+    val themeMode: Flow<String>
 
     fun setActiveUser(userId: String?)
     fun clearActiveSession()
@@ -45,6 +46,7 @@ interface UserRepository {
     suspend fun addWater(amount: Float)
     suspend fun decreaseWater(amount: Float)
     suspend fun completeOnboarding(name: String, calories: Int, diet: String, activity: String)
+    suspend fun setThemeMode(mode: String)
 }
 
 /**
@@ -76,6 +78,7 @@ class UserRepositoryImpl(
     override val userWeightKg: Flow<Float> = userProfileManager.userWeightKgFlow
     override val userHeightCm: Flow<Float> = userProfileManager.userHeightCmFlow
     override val userFitnessGoal: Flow<String> = userProfileManager.userFitnessGoalFlow
+    override val themeMode: Flow<String> = userProfileManager.themeModeFlow
 
     override fun setActiveUser(userId: String?) {
         userProfileManager.setActiveUser(userId)
@@ -182,5 +185,10 @@ class UserRepositoryImpl(
                 "activityLevel" to activity
             )
         )
+    }
+
+    override suspend fun setThemeMode(mode: String) = withContext(ioDispatcher) {
+        userProfileManager.setThemeMode(mode)
+        syncToCloud(mapOf("themeMode" to mode))
     }
 }

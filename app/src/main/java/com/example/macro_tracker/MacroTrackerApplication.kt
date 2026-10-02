@@ -20,6 +20,8 @@ class MacroTrackerApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        com.example.macro_tracker.util.NotificationHelper.createNotificationChannels(this)
+        com.example.macro_tracker.util.ReminderScheduler.scheduleAllReminders(this)
     }
 
     override fun newImageLoader(): ImageLoader {

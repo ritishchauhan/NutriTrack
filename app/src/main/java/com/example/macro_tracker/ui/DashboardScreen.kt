@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import com.example.macro_tracker.R
 import com.example.macro_tracker.data.local.FoodLogEntity
@@ -76,6 +77,8 @@ fun DashboardScreen(
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showOnboardingDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // First-time only: Only display onboarding prompt after profile is loaded and user has no saved name
     LaunchedEffect(isProfileLoaded, userName, onboardingCompleted) {
@@ -373,6 +376,7 @@ fun DashboardScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = NutritrackBg,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0.dp)
     ) { innerPadding ->
         LazyColumn(
@@ -889,6 +893,17 @@ fun DashboardScreen(
                 }
             }
 
+            // Weight Trend (MacroFactor EMA Smoothing)
+            item {
+                val weightSummary by profileViewModel.weightTrendSummaryLiveData.observeAsState(com.example.macro_tracker.util.WeightTrendSummary())
+                com.example.macro_tracker.ui.components.WeightTrendCard(
+                    summary = weightSummary,
+                    onLogWeight = { weight, note ->
+                        profileViewModel.logWeight(weight, note)
+                    }
+                )
+            }
+
             // Meals Section Header
             item {
                 Row(
@@ -909,6 +924,40 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        FilledTonalButton(
+                            onClick = {
+                                foodViewModel.copyMealsFromYesterday { count ->
+                                    coroutineScope.launch {
+                                        if (count > 0) {
+                                            snackbarHostState.showSnackbar("Copied $count meal(s) from yesterday!")
+                                        } else {
+                                            snackbarHostState.showSnackbar("No meals found from yesterday to copy.")
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = BrandGreenPill,
+                                contentColor = BrandGreen
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ContentCopy,
+                                contentDescription = "Copy Yesterday",
+                                modifier = Modifier.size(14.dp),
+                                tint = BrandGreen
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Yesterday",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = BrandGreen
+                            )
+                        }
+
                         if (dailyLogs.isNotEmpty()) {
                             FilledTonalButton(
                                 onClick = { showDeleteAllConfirm = true },
@@ -1008,17 +1057,52 @@ fun DashboardScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Button(
-                                onClick = onNavigateToLog,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = NutritrackDark,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(16.dp)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Log First Meal", fontWeight = FontWeight.Bold)
+                                FilledTonalButton(
+                                    onClick = {
+                                        foodViewModel.copyMealsFromYesterday { count ->
+                                            coroutineScope.launch {
+                                                if (count > 0) {
+                                                    snackbarHostState.showSnackbar("Copied $count meal(s) from yesterday!")
+                                                } else {
+                                                    snackbarHostState.showSnackbar("No meals found from yesterday to copy.")
+                                                }
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = BrandGreenPill,
+                                        contentColor = BrandGreen
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.height(44.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ContentCopy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = BrandGreen
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Copy Yesterday", fontWeight = FontWeight.SemiBold, color = BrandGreen)
+                                }
+
+                                Button(
+                                    onClick = onNavigateToLog,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NutritrackDark,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.height(44.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Log Meal", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

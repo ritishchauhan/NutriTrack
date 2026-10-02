@@ -16,7 +16,35 @@ import kotlinx.coroutines.launch
  * adhering to MVVM architecture by communicating exclusively with [UserRepository],
  * lifecycle-aware via [LiveData] and [StateFlow], and optimized with WhileSubscribed(5_000).
  */
-class ProfileViewModel(private val userRepository: UserRepository) : ViewModel() {
+class ProfileViewModel(
+    private val userRepository: UserRepository,
+    private val weightRepository: com.example.macro_tracker.data.repository.WeightRepository? = null
+) : ViewModel() {
+
+    val weightTrendSummary: StateFlow<com.example.macro_tracker.util.WeightTrendSummary> =
+        (weightRepository?.weightTrendSummary ?: kotlinx.coroutines.flow.flowOf(com.example.macro_tracker.util.WeightTrendSummary()))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.example.macro_tracker.util.WeightTrendSummary())
+    val weightTrendSummaryLiveData: LiveData<com.example.macro_tracker.util.WeightTrendSummary> =
+        weightTrendSummary.asLiveData(viewModelScope.coroutineContext)
+
+    val weightLogs: StateFlow<List<com.example.macro_tracker.data.local.WeightLogEntity>> =
+        (weightRepository?.weightLogs ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val weightLogsLiveData: LiveData<List<com.example.macro_tracker.data.local.WeightLogEntity>> =
+        weightLogs.asLiveData(viewModelScope.coroutineContext)
+
+    fun logWeight(weightKg: Float, note: String = "", onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val res = weightRepository?.logWeight(weightKg, note)
+            onComplete(res?.isSuccess == true)
+        }
+    }
+
+    fun deleteWeightLog(log: com.example.macro_tracker.data.local.WeightLogEntity) {
+        viewModelScope.launch {
+            weightRepository?.deleteWeightLog(log)
+        }
+    }
 
     val userName: StateFlow<String> = userRepository.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
@@ -84,6 +112,16 @@ class ProfileViewModel(private val userRepository: UserRepository) : ViewModel()
     ) { _, _ -> true }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val isProfileLoadedLiveData: LiveData<Boolean> = isProfileLoaded.asLiveData(viewModelScope.coroutineContext)
+
+    val themeMode: StateFlow<String> = userRepository.themeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "SYSTEM")
+    val themeModeLiveData: LiveData<String> = themeMode.asLiveData(viewModelScope.coroutineContext)
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            userRepository.setThemeMode(mode)
+        }
+    }
 
     fun saveUserName(name: String) {
         viewModelScope.launch {

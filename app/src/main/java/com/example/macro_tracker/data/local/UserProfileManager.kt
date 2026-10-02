@@ -40,6 +40,7 @@ class UserProfileManager(private val context: Context) {
         val USER_WEIGHT_KG = floatPreferencesKey("user_weight_kg")
         val USER_HEIGHT_CM = floatPreferencesKey("user_height_cm")
         val USER_FITNESS_GOAL = stringPreferencesKey("user_fitness_goal")
+        val USER_THEME_MODE = stringPreferencesKey("user_theme_mode")
 
         const val DEFAULT_CALORIE_GOAL = 2000
         const val DEFAULT_PROTEIN_GOAL = 120
@@ -54,6 +55,7 @@ class UserProfileManager(private val context: Context) {
         const val DEFAULT_FITNESS_GOAL = "LOSE_WEIGHT"
         const val DEFAULT_DIETARY_PREFERENCE = "Non-veg"
         const val DEFAULT_ACTIVITY_LEVEL = "Sedentary"
+        const val DEFAULT_THEME_MODE = "SYSTEM"
     }
 
     private val _activeUserId = MutableStateFlow<String?>(
@@ -179,6 +181,19 @@ class UserProfileManager(private val context: Context) {
 
     val userGmailFlow: Flow<String> = currentPreferencesFlow.map { preferences ->
         preferences[USER_GMAIL] ?: ""
+    }
+
+    val themeModeFlow: Flow<String> = _activeUserId.flatMapLatest { uid ->
+        val targetStore = if (!uid.isNullOrBlank()) getDataStoreForUser(uid) else getDataStoreForUser("global_settings")
+        targetStore.data.catch { emit(emptyPreferences()) }.map { it[USER_THEME_MODE] ?: DEFAULT_THEME_MODE }
+    }
+
+    suspend fun setThemeMode(mode: String) {
+        val uid = _activeUserId.value
+        val targetStore = if (!uid.isNullOrBlank()) getDataStoreForUser(uid) else getDataStoreForUser("global_settings")
+        targetStore.edit { preferences ->
+            preferences[USER_THEME_MODE] = mode
+        }
     }
 
     private suspend fun editCurrent(transform: suspend (MutablePreferences) -> Unit) {

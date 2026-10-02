@@ -24,6 +24,7 @@ interface AppContainer {
     val authRepository: AuthRepository
     val firestoreRepository: FirestoreRepository
     val mealCloudSyncRepository: MealCloudSyncRepository
+    val weightRepository: com.example.macro_tracker.data.repository.WeightRepository
 }
 
 /**
@@ -84,6 +85,15 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             firestoreRepository = firestoreRepository,
             foodLogDao = database.foodLogDao(),
             mealCloudSyncRepository = mealCloudSyncRepository
+        )
+    }
+
+    override val weightRepository: com.example.macro_tracker.data.repository.WeightRepository by lazy {
+        com.example.macro_tracker.data.repository.WeightRepositoryImpl(
+            weightLogDao = database.weightLogDao(),
+            userProfileManager = userProfileManager,
+            firestoreRepository = firestoreRepository,
+            neonApiClient = neonApiClient
         )
     }
 }
