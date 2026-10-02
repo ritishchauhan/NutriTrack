@@ -1,11 +1,13 @@
 package com.example.macro_tracker.data.model
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
  * Data model for Indian kitchen recipes, containing ingredients,
  * step-by-step cooking instructions, and detailed nutritional macros.
  */
+@Immutable
 data class Recipe(
     val id: String,
     val title: String,

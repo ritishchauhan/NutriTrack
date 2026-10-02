@@ -394,7 +394,7 @@ fun FoodScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(filterOptions) { filter ->
+                    items(filterOptions, key = { it }) { filter ->
                         val isSelected = filter.equals(activeFilter, ignoreCase = true)
                         Surface(
                             onClick = { foodViewModel.setMealFilter(filter) },

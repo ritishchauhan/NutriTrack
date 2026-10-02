@@ -1,5 +1,7 @@
 package com.example.macro_tracker.data.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * Fitness goals supported by the Nutritrack Diet Planner.
  */
@@ -26,6 +28,7 @@ enum class DietPreference(val displayName: String) {
     NON_VEG("Non-Vegetarian")
 }
 
+@Immutable
 data class PlanMeal(
     val timing: String, // e.g., "Early Morning (7:00 AM)", "Breakfast (8:30 AM)"
     val mealType: String, // "Breakfast", "Lunch", "Snack", "Dinner"
@@ -39,6 +42,7 @@ data class PlanMeal(
     val recipeId: String? = null
 )
 
+@Immutable
 data class DailyDietPlan(
     val id: String,
     val goal: FitnessGoal,

@@ -1,14 +1,17 @@
 package com.example.macro_tracker.util
 
+import androidx.compose.runtime.Immutable
 import com.example.macro_tracker.data.local.WeightLogEntity
 import java.util.concurrent.TimeUnit
 
+@Immutable
 data class WeightTrendPoint(
     val timestamp: Long,
     val actualWeight: Float,
     val trendWeight: Float
 )
 
+@Immutable
 data class WeightTrendSummary(
     val currentActualKg: Float = 0f,
     val currentTrendKg: Float = 0f,

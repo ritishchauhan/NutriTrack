@@ -4,6 +4,9 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 @Entity(
     tableName = "weight_logs",
     indices = [

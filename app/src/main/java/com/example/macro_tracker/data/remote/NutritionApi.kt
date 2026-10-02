@@ -1,5 +1,6 @@
 package com.example.macro_tracker.data.remote
 
+import androidx.compose.runtime.Immutable
 import com.squareup.moshi.Json
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -19,10 +20,12 @@ interface NutritionApi {
     ): BarcodeLookupResponse
 }
 
+@Immutable
 data class SearchResponse(
     val products: List<Product>? = null
 )
 
+@Immutable
 data class BarcodeLookupResponse(
     val status: Int? = null,
     @field:Json(name = "status_verbose") val status_verbose: String? = null,
@@ -30,6 +33,7 @@ data class BarcodeLookupResponse(
     val product: Product? = null
 )
 
+@Immutable
 data class Product(
     @field:Json(name = "product_name") val product_name: String? = null,
     val brands: String? = null,
@@ -39,6 +43,7 @@ data class Product(
     val code: String? = null
 )
 
+@Immutable
 data class Nutriments(
     @field:Json(name = "energy-kcal") val energy_kcal: Double? = null,
     @field:Json(name = "energy-kcal_100g") val energy_kcal_100g: Double? = null,

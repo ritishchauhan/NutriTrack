@@ -581,7 +581,7 @@ fun WeightTrendScreen(
                     }
                 }
             } else {
-                items(sortedLogs, key = { it.id }) { log ->
+                items(sortedLogs, key = { it.id }, contentType = { "weight_log" }) { log ->
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = NutritrackSurface,
@@ -1086,15 +1086,26 @@ fun HistoricalTrendChartCard(
                     }
                 }
             } else {
-                // Interactive Canvas Chart (Optimized: memoize min/max/range calculations)
+                // Interactive Canvas Chart (Optimized: single-pass min/max & memoized dash effect)
                 val (minWeight, maxWeight, weightRange) = remember(points) {
-                    val allActual = points.map { it.actualWeight }
-                    val allTrend = points.map { it.trendWeight }
-                    val min = ((allActual + allTrend).minOrNull() ?: 60f) - 1.0f
-                    val max = ((allActual + allTrend).maxOrNull() ?: 80f) + 1.0f
+                    var minVal = Float.MAX_VALUE
+                    var maxVal = Float.MIN_VALUE
+                    for (pt in points) {
+                        if (pt.actualWeight < minVal) minVal = pt.actualWeight
+                        if (pt.actualWeight > maxVal) maxVal = pt.actualWeight
+                        if (pt.trendWeight < minVal) minVal = pt.trendWeight
+                        if (pt.trendWeight > maxVal) maxVal = pt.trendWeight
+                    }
+                    if (minVal == Float.MAX_VALUE) {
+                        minVal = 60f
+                        maxVal = 80f
+                    }
+                    val min = minVal - 1.0f
+                    val max = maxVal + 1.0f
                     Triple(min, max, (max - min).coerceAtLeast(1.0f))
                 }
 
+                val gridDashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f) }
                 val gridColor = NutritrackBorderLight
                 val dotMutedColor = TextMuted.copy(alpha = 0.6f)
 
@@ -1118,7 +1129,7 @@ fun HistoricalTrendChartCard(
                                 start = Offset(0f, y),
                                 end = Offset(width, y),
                                 strokeWidth = 1f,
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                                pathEffect = gridDashEffect
                             )
                         }
 
@@ -1475,13 +1486,16 @@ fun ThreeMonthPredictionSection(
                     .background(NutritrackBg)
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
-                val allValues = listOf(currentWeight, m1Weight, m2Weight, m3Weight)
-                val minY = (allValues.minOrNull() ?: 60f) - 1.0f
-                val maxY = (allValues.maxOrNull() ?: 80f) + 1.0f
-                val rangeY = (maxY - minY).coerceAtLeast(1.0f)
+                val (minY, maxY, rangeY) = remember(currentWeight, m1Weight, m2Weight, m3Weight) {
+                    val min = minOf(currentWeight, m1Weight, m2Weight, m3Weight) - 1.0f
+                    val max = maxOf(currentWeight, m1Weight, m2Weight, m3Weight) + 1.0f
+                    Triple(min, max, (max - min).coerceAtLeast(1.0f))
+                }
 
                 val accentColor = if (isGain) EnergyAmber else BrandGreen
                 val predictionGridColor = NutritrackBorderLight
+                val predGridDashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f) }
+                val predLineDashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 8f), 0f) }
 
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val width = size.width
@@ -1498,7 +1512,7 @@ fun ThreeMonthPredictionSection(
                             start = Offset(0f, y),
                             end = Offset(width, y),
                             strokeWidth = 1f,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                            pathEffect = predGridDashEffect
                         )
                     }
 
@@ -1514,13 +1528,6 @@ fun ThreeMonthPredictionSection(
 
                     val x3 = width
                     val y3 = paddingTop + usableHeight * (1f - ((m3Weight - minY) / rangeY))
-
-                    val points = listOf(
-                        Triple(x0, y0, currentWeight),
-                        Triple(x1, y1, m1Weight),
-                        Triple(x2, y2, m2Weight),
-                        Triple(x3, y3, m3Weight)
-                    )
 
                     // Shaded gradient corridor below curve
                     val areaPath = Path()
@@ -1554,13 +1561,16 @@ fun ThreeMonthPredictionSection(
                         style = Stroke(
                             width = 3.5f,
                             cap = StrokeCap.Round,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 8f), 0f)
+                            pathEffect = predLineDashEffect
                         )
                     )
 
-                    // Milestone marker dots
-                    points.forEachIndexed { idx, (px, py, wt) ->
-                        val isFinal = idx == 3
+                    // Milestone marker dots (zero allocation)
+                    val ptCoords = floatArrayOf(x0, y0, x1, y1, x2, y2, x3, y3)
+                    for (i in 0 until 4) {
+                        val px = ptCoords[i * 2]
+                        val py = ptCoords[i * 2 + 1]
+                        val isFinal = (i == 3)
                         val outerRadius = if (isFinal) 9f else 7f
                         val innerRadius = if (isFinal) 4.5f else 3.5f
 

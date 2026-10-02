@@ -1,5 +1,6 @@
 package com.example.macro_tracker.data.local
 
+import androidx.compose.runtime.Immutable
 import kotlin.math.roundToInt
 
 /**
@@ -7,6 +8,7 @@ import kotlin.math.roundToInt
  * verified per 100 grams. Used to automatically compute calories and macros
  * based on portion weight, or calculate composite nutrition from ingredients.
  */
+@Immutable
 data class KnownDish(
     val id: String,
     val name: String,
@@ -20,6 +22,7 @@ data class KnownDish(
     val aliases: List<String> = emptyList()
 )
 
+@Immutable
 data class KitchenIngredient(
     val id: String,
     val name: String,
@@ -32,6 +35,7 @@ data class KitchenIngredient(
     val defaultGrams: Float = 50f
 )
 
+@Immutable
 data class RecipeIngredientEntry(
     val ingredient: KitchenIngredient,
     val weightGrams: Float
@@ -177,20 +181,28 @@ object DishDatabase {
         KitchenIngredient("ing_sattu", "Roasted Chana Sattu Flour", "Grains", 380, 22.0f, 60.0f, 5.5f, 15.0f, 40f)
     )
 
+    private val exactLookup: Map<String, KnownDish> by lazy {
+        val map = HashMap<String, KnownDish>(popularDishes.size * 4)
+        for (dish in popularDishes) {
+            map[dish.name.lowercase().trim()] = dish
+            for (alias in dish.aliases) {
+                map[alias.lowercase().trim()] = dish
+            }
+        }
+        map
+    }
+
     /**
-     * Resolves a user input string against known dishes with fuzzy matching and alias lookup.
+     * Resolves a user input string against known dishes with fast O(1) alias/name lookup and fuzzy matching.
      */
     fun findKnownDish(query: String): KnownDish? {
         val trimmed = query.trim().lowercase()
         if (trimmed.length < 2) return null
 
-        // 1. Exact name match
-        popularDishes.firstOrNull { it.name.lowercase() == trimmed }?.let { return it }
+        // 1. Instant O(1) exact name or alias match
+        exactLookup[trimmed]?.let { return it }
 
-        // 2. Exact alias match
-        popularDishes.firstOrNull { dish -> dish.aliases.any { it.equals(trimmed, ignoreCase = true) } }?.let { return it }
-
-        // 3. Substring match
+        // 2. Substring match fallback
         popularDishes.firstOrNull { dish ->
             dish.name.lowercase().contains(trimmed) || dish.aliases.any { trimmed.contains(it) || it.contains(trimmed) }
         }?.let { return it }
@@ -240,6 +252,7 @@ object DishDatabase {
     }
 }
 
+@Immutable
 data class CalculatedNutrition(
     val calories: Int,
     val protein: Float,
