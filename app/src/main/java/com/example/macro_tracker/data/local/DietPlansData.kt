@@ -5,6 +5,7 @@ import com.example.macro_tracker.data.model.DietPreference
 import com.example.macro_tracker.data.model.FitnessGoal
 import com.example.macro_tracker.data.model.PlanMeal
 import kotlin.math.roundToInt
+import java.util.Locale
 
 /**
  * Curated Indian home-cooking diet plans engineered directly from
@@ -559,5 +560,123 @@ object DietPlansData {
     fun getPlan(goal: FitnessGoal, preference: DietPreference): DailyDietPlan {
         return allPlans.firstOrNull { it.goal == goal && it.preference == preference }
             ?: allPlans.first()
+    }
+
+    /**
+     * Scales food portion quantities and weights (g, ml, pieces, rotis) in a portion description string.
+     */
+    fun scalePortionDescription(desc: String, scaleFactor: Float): String {
+        if (scaleFactor in 0.96f..1.04f) return desc
+        val regex = Regex("""(\d+(?:\.\d+)?)\s*(g|gm|ml|tsp|tbsp|phulkas|rotis|eggs|egg)""", RegexOption.IGNORE_CASE)
+        return regex.replace(desc) { matchResult ->
+            val numStr = matchResult.groupValues[1]
+            val unit = matchResult.groupValues[2]
+            val originalVal = numStr.toFloatOrNull()
+            if (originalVal != null) {
+                val scaledVal = originalVal * scaleFactor
+                val formatted = if (unit.equals("g", ignoreCase = true) || unit.equals("gm", ignoreCase = true) || unit.equals("ml", ignoreCase = true)) {
+                    if (scaledVal >= 25f) ((scaledVal / 5f).roundToInt() * 5).toString()
+                    else scaledVal.roundToInt().coerceAtLeast(1).toString()
+                } else if (scaledVal < 5f && (scaledVal - scaledVal.toInt() in 0.25f..0.75f)) {
+                    String.format(Locale.US, "%.1f", scaledVal)
+                } else {
+                    scaledVal.roundToInt().coerceAtLeast(1).toString()
+                }
+                "$formatted $unit"
+            } else {
+                matchResult.value
+            }
+        }
+    }
+
+    /**
+     * Dynamically calibrates all meals for the full day to hit 100% of the user's
+     * specific daily calorie, protein, carbohydrate, and fat targets (e.g. 150g protein).
+     */
+    fun getCalibratedPlan(
+        goal: FitnessGoal,
+        preference: DietPreference,
+        targetCalories: Int,
+        targetProtein: Int,
+        targetCarbs: Int,
+        targetFat: Int
+    ): DailyDietPlan {
+        val basePlan = getPlan(goal, preference)
+        val baseProtein = basePlan.totalProtein.coerceAtLeast(1f)
+        val baseCalories = basePlan.totalCalories.coerceAtLeast(1)
+        val baseCarbs = basePlan.totalCarbs.coerceAtLeast(1f)
+        val baseFat = basePlan.totalFat.coerceAtLeast(1f)
+
+        val proteinScale = targetProtein.toFloat() / baseProtein
+        val calorieScale = targetCalories.toFloat() / baseCalories.toFloat()
+        val carbsScale = targetCarbs.toFloat() / baseCarbs
+        val fatScale = targetFat.toFloat() / baseFat
+
+        // Use balanced scale between protein and calories for food portion sizes
+        val portionScale = (proteinScale * 0.7f + calorieScale * 0.3f)
+
+        var accumulatedCalories = 0
+        var accumulatedProtein = 0f
+        var accumulatedCarbs = 0f
+        var accumulatedFat = 0f
+
+        val totalMeals = basePlan.meals.size
+        val scaledMeals = basePlan.meals.mapIndexed { index, meal ->
+            val isLast = index == totalMeals - 1
+
+            val mealCal = if (isLast) {
+                (targetCalories - accumulatedCalories).coerceAtLeast(50)
+            } else {
+                val cal = (meal.calories * calorieScale).roundToInt()
+                accumulatedCalories += cal
+                cal
+            }
+
+            val mealPro = if (isLast) {
+                ((targetProtein - accumulatedProtein) * 10f).roundToInt() / 10f
+            } else {
+                val pro = ((meal.protein * proteinScale) * 10f).roundToInt() / 10f
+                accumulatedProtein += pro
+                pro
+            }
+
+            val mealCarb = if (isLast) {
+                ((targetCarbs - accumulatedCarbs) * 10f).roundToInt() / 10f
+            } else {
+                val carb = ((meal.carbs * carbsScale) * 10f).roundToInt() / 10f
+                accumulatedCarbs += carb
+                carb
+            }
+
+            val mealFatVal = if (isLast) {
+                ((targetFat - accumulatedFat) * 10f).roundToInt() / 10f
+            } else {
+                val fatVal = ((meal.fat * fatScale) * 10f).roundToInt() / 10f
+                accumulatedFat += fatVal
+                fatVal
+            }
+
+            val mealFiberVal = ((meal.fiber * calorieScale) * 10f).roundToInt() / 10f
+
+            val scaledPortion = scalePortionDescription(meal.portionDesc, portionScale)
+
+            meal.copy(
+                portionDesc = scaledPortion,
+                calories = mealCal,
+                protein = mealPro.coerceAtLeast(0f),
+                carbs = mealCarb.coerceAtLeast(0f),
+                fat = mealFatVal.coerceAtLeast(0f),
+                fiber = mealFiberVal.coerceAtLeast(0f)
+            )
+        }
+
+        return basePlan.copy(
+            totalCalories = targetCalories,
+            totalProtein = targetProtein.toFloat(),
+            totalCarbs = targetCarbs.toFloat(),
+            totalFat = targetFat.toFloat(),
+            subtitle = "Customized to your bodyweight & goal: Exactly completes ${targetProtein}g daily protein & ${targetCalories} kcal across ${totalMeals} meals.",
+            meals = scaledMeals
+        )
     }
 }

@@ -124,8 +124,15 @@ fun DietPlansScreen(
         }
     }
 
-    val currentPlan = remember(selectedGoal, selectedDiet) {
-        DietPlansData.getPlan(selectedGoal, selectedDiet)
+    val currentPlan = remember(selectedGoal, selectedDiet, targetCalories, targetProtein, targetCarbs, targetFat) {
+        DietPlansData.getCalibratedPlan(
+            goal = selectedGoal,
+            preference = selectedDiet,
+            targetCalories = targetCalories,
+            targetProtein = targetProtein,
+            targetCarbs = targetCarbs,
+            targetFat = targetFat
+        )
     }
 
     // Modal for displaying recipe instructions & adding to food log
@@ -737,27 +744,74 @@ fun DietPlansScreen(
                 }
             }
 
-            // Meal Plan Section Title
+            // Meal Plan Section Title & Goal Fulfillment Banner
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Full Day Meals (${currentPlan.meals.size} items)",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = OutfitFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        ),
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "Click 'Recipe' for instructions",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = TextMuted
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Full Day Meals (${currentPlan.meals.size} items)",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = OutfitFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            ),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Click 'Recipe' for instructions",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            color = TextMuted
+                        )
+                    }
+
+                    // Goal Calibration Badge
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = BrandGreenPill,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandGreen.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(BrandGreen)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DoneAll,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Goal Calibrated: Completes 100% of Daily Targets",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontFamily = OutfitFontFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    ),
+                                    color = BrandGreenDark
+                                )
+                                Text(
+                                    text = "Target Protein: ${targetProtein}g • Target Calories: ${targetCalories} kcal. All ${currentPlan.meals.size} suggested meals add up to complete your daily requirements with scaled portion sizes.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = TextPrimary
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

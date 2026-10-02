@@ -87,6 +87,18 @@ fun WeightTrendScreen(
     // Performance optimization: Memoize sorted weigh-ins to prevent recalculating on every scroll frame
     val sortedLogs = remember(weightLogs) { weightLogs.sortedByDescending { it.timestamp } }
 
+    val todayStartMillis = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+    val todayLog = remember(weightLogs, todayStartMillis) {
+        weightLogs.firstOrNull { it.timestamp >= todayStartMillis }
+    }
+
     // Log Body Weight Dialog
     if (showLogDialog) {
         var inputWeight by remember {
@@ -426,7 +438,22 @@ fun WeightTrendScreen(
                 }
             }
 
-            // 2. Current Weight Trend Summary Cards (Hero Display)
+            // 2. Prominent On-Screen Daily Weigh-In Card (Clear & Understandable)
+            item {
+                TodayWeighInCard(
+                    currentWeight = currentWeight,
+                    todayLog = todayLog,
+                    onSaveWeight = { weight, note ->
+                        if (todayLog != null) {
+                            profileViewModel.updateWeightLog(todayLog.copy(weightKg = weight, note = note))
+                        } else {
+                            profileViewModel.logWeight(weight, note)
+                        }
+                    }
+                )
+            }
+
+            // 3. Current Weight Trend Summary Cards (Hero Display)
             item {
                 val scaleWeight = if (weightTrendSummary.currentActualKg > 0) weightTrendSummary.currentActualKg else currentWeight
                 WeightTrendHeroCards(
@@ -438,12 +465,22 @@ fun WeightTrendScreen(
                 )
             }
 
-            // 3. Historical Weight Trend Chart (Scatter scale dots + smooth EMA curve)
+            // 4. Historical Weight Trend Chart (Scatter scale dots + smooth EMA curve)
             item {
                 HistoricalTrendChartCard(
                     summary = weightTrendSummary,
                     weightLogs = weightLogs,
                     onLogWeightClick = { showLogDialog = true }
+                )
+            }
+
+            // 5. Smart Trend Coaching & Insights (Reading Chart and Daily Trends for Improvement)
+            item {
+                val scaleWeight = if (weightTrendSummary.currentActualKg > 0) weightTrendSummary.currentActualKg else currentWeight
+                SmartTrendCoachingCard(
+                    summary = weightTrendSummary,
+                    userFitnessGoal = userFitnessGoal,
+                    scaleWeight = scaleWeight
                 )
             }
 
@@ -1644,6 +1681,498 @@ fun ThreeMonthPredictionSection(
                         color = BrandGreenDark
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Prominent, clear, and user-friendly daily weigh-in card directly on the screen.
+ * Resolves user confusion by providing explicit number input, +/- 0.1kg steppers,
+ * and a clear "Save Today's Weigh-in" call-to-action.
+ */
+@Composable
+fun TodayWeighInCard(
+    currentWeight: Float,
+    todayLog: WeightLogEntity?,
+    onSaveWeight: (weight: Float, note: String) -> Unit
+) {
+    val todayDateStr = remember {
+        SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+    }
+
+    var weightInput by remember(todayLog, currentWeight) {
+        val initial = todayLog?.weightKg ?: (if (currentWeight > 0f) currentWeight else 70f)
+        mutableStateOf(String.format(Locale.US, "%.1f", initial))
+    }
+
+    var selectedNote by remember(todayLog) {
+        mutableStateOf(todayLog?.note?.ifBlank { "Morning Fasting" } ?: "Morning Fasting")
+    }
+
+    var justSaved by remember { mutableStateOf(false) }
+
+    LaunchedEffect(justSaved) {
+        if (justSaved) {
+            kotlinx.coroutines.delay(2500)
+            justSaved = false
+        }
+    }
+
+    val parsedWeight = weightInput.toFloatOrNull()
+    val isValid = parsedWeight != null && parsedWeight in 25f..300f
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = NutritrackSurface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.5.dp,
+            if (todayLog != null) BrandGreen.copy(alpha = 0.5f) else NutritrackBorderLight
+        ),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (todayLog != null) BrandGreenPill else Color(0xFFF1F2F6))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MonitorWeight,
+                            contentDescription = null,
+                            tint = if (todayLog != null) BrandGreenDark else TextPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = if (todayLog != null) "Today's Weigh-in Recorded" else "Log Today's Weight",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = OutfitFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp
+                            ),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = todayDateStr,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                if (todayLog != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = BrandGreenPill
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = BrandGreenDark,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Recorded",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = BrandGreenDark
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = if (todayLog != null)
+                    "You've recorded ${todayLog.weightKg} kg today. Use the +/- steppers or edit below to adjust anytime."
+                else
+                    "Where to enter: Input your morning weight below and tap Save to update your chart and moving trend.",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Stepper and Input Box
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Decrement button (-0.1 kg)
+                Surface(
+                    onClick = {
+                        val current = weightInput.toFloatOrNull() ?: 70f
+                        val updated = (current - 0.1f).coerceAtLeast(25f)
+                        weightInput = String.format(Locale.US, "%.1f", updated)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = NutritrackBg,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "-0.1",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            ),
+                            color = TextPrimary
+                        )
+                    }
+                }
+
+                // Main weight text field
+                OutlinedTextField(
+                    value = weightInput,
+                    onValueChange = { input ->
+                        val filtered = input.filter { it.isDigit() || it == '.' }
+                        weightInput = filtered
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(16.dp),
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = OutfitFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = TextPrimary
+                    ),
+                    suffix = {
+                        Text(
+                            text = "kg",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = BrandGreenDark
+                            )
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedBorderColor = BrandGreen,
+                        unfocusedBorderColor = NutritrackBorderLight,
+                        focusedContainerColor = NutritrackBg,
+                        unfocusedContainerColor = NutritrackBg,
+                        cursorColor = BrandGreen
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Increment button (+0.1 kg)
+                Surface(
+                    onClick = {
+                        val current = weightInput.toFloatOrNull() ?: 70f
+                        val updated = (current + 0.1f).coerceAtMost(300f)
+                        weightInput = String.format(Locale.US, "%.1f", updated)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = NutritrackBg,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "+0.1",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            ),
+                            color = TextPrimary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Quick condition chips
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Morning Fasting", "Post Workout", "Night").forEach { tag ->
+                    val isSel = selectedNote.equals(tag, ignoreCase = true)
+                    Surface(
+                        onClick = { selectedNote = tag },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSel) NutritrackDark else NutritrackBg,
+                        border = if (!isSel) androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight) else null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(vertical = 7.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 11.sp
+                                ),
+                                color = if (isSel) Color.White else TextSecondary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Save / Update Button
+            Button(
+                onClick = {
+                    if (isValid) {
+                        onSaveWeight(parsedWeight!!, selectedNote)
+                        justSaved = true
+                    }
+                },
+                enabled = isValid,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (justSaved) BrandGreen else NutritrackDark,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(
+                    imageVector = if (justSaved) Icons.Rounded.Check else Icons.Rounded.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = when {
+                        justSaved -> "✓ Weight Saved Successfully!"
+                        todayLog != null -> "Update Today's Weigh-in"
+                        else -> "Save Today's Weigh-in"
+                    },
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Smart Trend Coaching card that analyzes the user's weight chart and moving average
+ * to provide actionable, intelligent advice for fat loss or muscle gain improvement.
+ */
+@Composable
+fun SmartTrendCoachingCard(
+    summary: WeightTrendSummary,
+    userFitnessGoal: String,
+    scaleWeight: Float
+) {
+    val weeklyRate = summary.weeklyRateKg
+    val trendWeight = summary.currentTrendKg
+    val isCutting = !userFitnessGoal.contains("GAIN", ignoreCase = true)
+    val waterDelta = scaleWeight - trendWeight
+
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = NutritrackSurface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorderLight),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(BrandGreenPill)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Lightbulb,
+                        contentDescription = null,
+                        tint = BrandGreenDark,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Smart Trend Coaching & Insights",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = OutfitFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        ),
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Actionable suggestions derived from your weight chart & trends",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = TextSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 1. Pace Coaching Box
+            val (paceTitle, paceDesc, paceColor, paceIcon) = when {
+                isCutting -> when {
+                    weeklyRate <= -1.0f -> Quadruple(
+                        "⚠️ Fat Loss Pace Too Fast (-${String.format(Locale.US, "%.2f", abs(weeklyRate))} kg/wk)",
+                        "Losing more than 1.0 kg/week risks muscle breakdown and metabolic slowdown. Add +150-200 kcal in My Meals and ensure you hit your protein target to preserve lean tissue.",
+                        Color(0xFFE67E22),
+                        Icons.Rounded.Warning
+                    )
+                    weeklyRate in -0.9f..-0.35f -> Quadruple(
+                        "🔥 Optimal Sustainable Fat Loss (-${String.format(Locale.US, "%.2f", abs(weeklyRate))} kg/wk)",
+                        "You are in the ideal sweet spot (0.4 to 0.8 kg/wk) where fat oxidation is maximized while 100% of lean muscle is protected. Continue your current routine!",
+                        BrandGreen,
+                        Icons.Rounded.CheckCircle
+                    )
+                    weeklyRate in -0.34f..0.15f -> Quadruple(
+                        "📊 Weight Plateau / Stalling Detected",
+                        "Your trend has stalled recently. Don't starve! Instead, introduce a gentle 100-150 kcal reduction in My Meals or add 2,000 steps to restart fat burn.",
+                        Color(0xFF3498DB),
+                        Icons.AutoMirrored.Rounded.TrendingFlat
+                    )
+                    else -> Quadruple(
+                        "📈 Upward Weight Drift (+${String.format(Locale.US, "%.2f", weeklyRate)} kg/wk)",
+                        "Your trend is rising. Double-check portion sizes in My Meals, watch for hidden cooking oils, and stay in a consistent daily deficit.",
+                        Color(0xFFE74C3C),
+                        Icons.AutoMirrored.Rounded.TrendingUp
+                    )
+                }
+                else -> when {
+                    weeklyRate in 0.15f..0.45f -> Quadruple(
+                        "💪 Perfect Lean Bulking Pace (+${String.format(Locale.US, "%.2f", weeklyRate)} kg/wk)",
+                        "Gaining at 0.2 - 0.4 kg/week matches human muscle protein synthesis limits. Excellent lean muscle accumulation with minimal fat gain!",
+                        BrandGreen,
+                        Icons.Rounded.FitnessCenter
+                    )
+                    weeklyRate > 0.5f -> Quadruple(
+                        "⚠️ Surplus Too High (+${String.format(Locale.US, "%.2f", weeklyRate)} kg/wk)",
+                        "Gaining faster than 0.5 kg/week stores excess calories as body fat. Dial back your surplus by 150 kcal to keep gains lean.",
+                        Color(0xFFE67E22),
+                        Icons.Rounded.Warning
+                    )
+                    else -> Quadruple(
+                        "📉 Bulking Stalled (Surplus Insufficient)",
+                        "Weight is not increasing. Increase your daily calories by +200 kcal (e.g. an extra banana smoothie or handful of nuts) to fuel hypertrophy.",
+                        Color(0xFF3498DB),
+                        Icons.AutoMirrored.Rounded.TrendingFlat
+                    )
+                }
+            }
+
+            CoachingTipItem(title = paceTitle, description = paceDesc, accentColor = paceColor, icon = paceIcon)
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. Water Retention vs Fat Analysis
+            if (abs(waterDelta) >= 0.4f) {
+                if (waterDelta > 0f) {
+                    CoachingTipItem(
+                        title = "💧 Water Spike (+${String.format(Locale.US, "%.1f", waterDelta)} kg above trend)",
+                        description = "Today's scale dot is above your smoothed trend line. Each gram of dietary carbohydrate stores 3-4g of water in muscle glycogen. High sodium, stress, or training soreness also hold water. This is temporary water, NOT fat gain! Trust your smoothed trend (${String.format(Locale.US, "%.1f", trendWeight)} kg).",
+                        accentColor = Color(0xFF0984E3),
+                        icon = Icons.Rounded.WaterDrop
+                    )
+                } else {
+                    CoachingTipItem(
+                        title = "💧 Low Hydration Reading (-${String.format(Locale.US, "%.1f", abs(waterDelta))} kg below trend)",
+                        description = "Today's scale is temporarily lower than your smoothed trend due to mild dehydration or lower digestive food mass. Keep drinking your recommended daily water goal.",
+                        accentColor = Color(0xFF00CEC9),
+                        icon = Icons.Rounded.WaterDrop
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // 3. Action Recommendation
+            CoachingTipItem(
+                title = "🎯 Daily Action For Improvement",
+                description = "Weigh yourself under identical conditions: every morning immediately after waking up and using the washroom, before eating or drinking. Consistency creates the sharpest trend clarity.",
+                accentColor = TextPrimary,
+                icon = Icons.Rounded.TaskAlt
+            )
+        }
+    }
+}
+
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+@Composable
+fun CoachingTipItem(
+    title: String,
+    description: String,
+    accentColor: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = accentColor.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.25f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(top = 2.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = if (accentColor == TextPrimary) TextPrimary else accentColor
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                    color = TextPrimary
+                )
             }
         }
     }

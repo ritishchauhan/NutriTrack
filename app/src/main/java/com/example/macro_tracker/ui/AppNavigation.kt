@@ -283,8 +283,8 @@ fun AppNavigation(
                     )
 
                     DrawerMenuItem(
-                        icon = Icons.Rounded.Add,
-                        label = "Food Log",
+                        icon = Icons.Rounded.RestaurantMenu,
+                        label = "My Meals",
                         isSelected = currentRoute == FoodRoute,
                         onClick = {
                             scope.launch { drawerState.close() }
@@ -459,8 +459,8 @@ fun AppNavigation(
                                         backStack.add(FoodRoute)
                                     }
                                 },
-                                icon = Icons.Rounded.AddCircleOutline,
-                                label = "Log",
+                                icon = Icons.Rounded.RestaurantMenu,
+                                label = "My Meals",
                                 modifier = Modifier.weight(1f)
                             )
 

@@ -941,7 +941,7 @@ fun DashboardScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = BrandGreen,
                                 modifier = Modifier.size(18.dp)
@@ -1113,7 +1113,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Your log is empty. Track what you've eaten to hit your calorie and macro goals.",
+                                text = "Your meals list is empty. Add what you've eaten to hit your calorie and macro goals.",
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -1165,7 +1165,7 @@ fun DashboardScreen(
                                 ) {
                                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Log Meal", fontWeight = FontWeight.Bold)
+                                    Text("Add Meal", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

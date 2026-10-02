@@ -188,298 +188,26 @@ fun FoodScreen(
         )
     }
 
-    // Universal Add Meal Dialog (Starts completely empty for user data)
+    // Universal Add Meal Dialog with Smart Dish Recognition & Ingredient Builder
     if (showQuickAddDialog) {
-        var mealTypeSelection by remember { mutableStateOf(selectedMealForAdd) }
-        var mealNameInput by remember { mutableStateOf("") }
-        var weightGramsInput by remember { mutableStateOf("100") }
-        var caloriesInput by remember { mutableStateOf("") }
-        var proteinInput by remember { mutableStateOf("") }
-        var carbsInput by remember { mutableStateOf("") }
-        var fatInput by remember { mutableStateOf("") }
-        var fiberInput by remember { mutableStateOf("") }
-        var descInput by remember { mutableStateOf("") }
-
-        AlertDialog(
+        com.example.macro_tracker.ui.components.AddCustomMealDialog(
+            initialMealType = selectedMealForAdd,
             onDismissRequest = { showQuickAddDialog = false },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = NutritrackSurface,
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(BrandGreenPill)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            tint = BrandGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Add Custom Meal",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        ),
-                        color = TextPrimary
-                    )
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Meal Category Selector
-                    Text(
-                        text = "Meal Category",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = TextPrimary
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        mealTypeOptions.forEach { type ->
-                            val isSel = type.equals(mealTypeSelection, ignoreCase = true)
-                            Surface(
-                                onClick = { mealTypeSelection = type },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isSel) NutritrackDark else NutritrackBg,
-                                border = if (!isSel) androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorder) else null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = type,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 11.sp
-                                        ),
-                                        color = if (isSel) Color.White else TextSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = mealNameInput,
-                        onValueChange = { mealNameInput = it },
-                        label = { Text("Dish Name") },
-                        placeholder = { Text("e.g. Paneer Bhurji, Oats Upma, Chicken Curry...", color = TextMuted) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = BrandGreen,
-                            unfocusedBorderColor = NutritrackBorder,
-                            focusedContainerColor = NutritrackBg,
-                            unfocusedContainerColor = NutritrackBg,
-                            cursorColor = BrandGreen
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = weightGramsInput,
-                            onValueChange = { weightGramsInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                            label = { Text("Weight (gm)") },
-                            placeholder = { Text("100", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = caloriesInput,
-                            onValueChange = { caloriesInput = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Calories (kcal)") },
-                            placeholder = { Text("e.g. 450", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = proteinInput,
-                            onValueChange = { proteinInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                            label = { Text("Protein (g)") },
-                            placeholder = { Text("e.g. 30", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = carbsInput,
-                            onValueChange = { carbsInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                            label = { Text("Carbs (g)") },
-                            placeholder = { Text("45", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = fatInput,
-                            onValueChange = { fatInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                            label = { Text("Fat (g)") },
-                            placeholder = { Text("12", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = fiberInput,
-                            onValueChange = { fiberInput = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                            label = { Text("Fiber (g)") },
-                            placeholder = { Text("5", color = TextMuted) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = NutritrackBorder,
-                                focusedContainerColor = NutritrackBg,
-                                unfocusedContainerColor = NutritrackBg,
-                                cursorColor = BrandGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = descInput,
-                        onValueChange = { descInput = it },
-                        label = { Text("Ingredients") },
-                        placeholder = { Text("e.g. 150g Paneer, 1 onion, 1 tsp ghee, spices", color = TextMuted) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = BrandGreen,
-                            unfocusedBorderColor = NutritrackBorder,
-                            focusedContainerColor = NutritrackBg,
-                            unfocusedContainerColor = NutritrackBg,
-                            cursorColor = BrandGreen
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val pro = proteinInput.toFloatOrNull() ?: 0f
-                        val carb = carbsInput.toFloatOrNull() ?: 0f
-                        val fat = fatInput.toFloatOrNull() ?: 0f
-                        val fib = fiberInput.toFloatOrNull() ?: 0f
-                        val manualCal = caloriesInput.toIntOrNull()
-                        val cal = manualCal ?: kotlin.math.round((pro * 4f) + (carb * 4f) + (fat * 9f) + (fib * 2f)).toInt().coerceAtLeast(0)
-                        val cleanName = mealNameInput.trim()
-                        val details = if (descInput.isNotBlank()) "Ingredients: ${descInput.trim()} • P ${pro.toInt()}g • C ${carb.toInt()}g • F ${fat.toInt()}g" + (if (fib > 0f) " • Fib ${fib.toInt()}g" else "")
-                        else "P ${pro.toInt()}g • C ${carb.toInt()}g • F ${fat.toInt()}g" + (if (fib > 0f) " • Fib ${fib.toInt()}g" else "")
-                        val wt = weightGramsInput.toFloatOrNull() ?: 100f
-                        foodViewModel.quickAddMeal(
-                            mealType = mealTypeSelection,
-                            foodName = cleanName,
-                            calories = cal,
-                            protein = pro,
-                            carbs = carb,
-                            fat = fat,
-                            fiber = fib,
-                            details = details,
-                            weightGrams = wt
-                        )
-                        showQuickAddDialog = false
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Logged $cleanName ($cal kcal) to $mealTypeSelection")
-                        }
-                    },
-                    enabled = mealNameInput.isNotBlank() && (caloriesInput.toIntOrNull() != null || proteinInput.isNotBlank() || carbsInput.isNotBlank() || fatInput.isNotBlank()),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NutritrackDark,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    Text("Add Custom Meal to $mealTypeSelection", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showQuickAddDialog = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Cancel", color = TextSecondary)
+            onAddMeal = { mealType, name, cal, pro, carb, fat, fiber, details, wt ->
+                foodViewModel.quickAddMeal(
+                    mealType = mealType,
+                    foodName = name,
+                    calories = cal,
+                    protein = pro,
+                    carbs = carb,
+                    fat = fat,
+                    fiber = fiber,
+                    details = details,
+                    weightGrams = wt
+                )
+                showQuickAddDialog = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Added $name ($cal kcal) to $mealType in My Meals")
                 }
             }
         )
@@ -490,7 +218,7 @@ fun FoodScreen(
         AlertDialog(
             onDismissRequest = { itemToDelete = null },
             title = { Text("Delete Meal") },
-            text = { Text("Remove ${itemToDelete?.foodName} from your log?") },
+            text = { Text("Remove ${itemToDelete?.foodName} from My Meals?") },
             confirmButton = {
                 TextButton(onClick = {
                     itemToDelete?.let { foodViewModel.deleteFoodLog(it) }
@@ -687,8 +415,9 @@ fun FoodScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Food Log",
+                            text = "My Meals",
                             style = MaterialTheme.typography.titleLarge.copy(
+                                fontFamily = OutfitFontFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp
                             ),
