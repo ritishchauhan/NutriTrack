@@ -1083,6 +1083,40 @@ fun FoodScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        FilledTonalButton(
+                            onClick = {
+                                foodViewModel.copyMealsFromYesterday(if (activeFilter != "All") activeFilter else null) { count ->
+                                    coroutineScope.launch {
+                                        if (count > 0) {
+                                            snackbarHostState.showSnackbar("Copied $count meal(s) from yesterday!")
+                                        } else {
+                                            snackbarHostState.showSnackbar("No meals found from yesterday to copy.")
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = BrandGreenPill,
+                                contentColor = BrandGreen
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ContentCopy,
+                                contentDescription = "Copy Yesterday",
+                                modifier = Modifier.size(14.dp),
+                                tint = BrandGreen
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Yesterday",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = BrandGreen
+                            )
+                        }
+
                         if (filteredLogs.isNotEmpty()) {
                             FilledTonalButton(
                                 onClick = { showDeleteAllConfirm = true },
@@ -1186,6 +1220,41 @@ fun FoodScreen(
                                 color = TextSecondary,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            FilledTonalButton(
+                                onClick = {
+                                    foodViewModel.copyMealsFromYesterday(if (activeFilter != "All") activeFilter else null) { count ->
+                                        coroutineScope.launch {
+                                            if (count > 0) {
+                                                snackbarHostState.showSnackbar("Copied $count meal(s) from yesterday!")
+                                            } else {
+                                                snackbarHostState.showSnackbar("No meals found from yesterday to copy.")
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = BrandGreenPill,
+                                    contentColor = BrandGreen
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth().height(44.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.ContentCopy,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = BrandGreen
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Repeat Yesterday's Meals",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = BrandGreen
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(16.dp))
 

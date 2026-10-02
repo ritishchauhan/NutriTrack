@@ -314,6 +314,15 @@ class FoodViewModel(
         }
     }
 
+    fun copyMealsFromYesterday(mealType: String? = null, onResult: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val target = _selectedDate.value
+            val source = target.minusDays(1)
+            val res = foodRepository.copyMealsFromDate(source, target, mealType)
+            onResult(res.getOrDefault(0))
+        }
+    }
+
     /**
      * Refreshes the dashboard and meal tracking data from the cloud for the active account.
      */

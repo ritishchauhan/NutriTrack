@@ -19,7 +19,8 @@ object AppViewModelProvider {
         }
         initializer {
             ProfileViewModel(
-                userRepository = macroTrackerApplication().container.userRepository
+                userRepository = macroTrackerApplication().container.userRepository,
+                weightRepository = macroTrackerApplication().container.weightRepository
             )
         }
         initializer {

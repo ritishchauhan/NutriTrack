@@ -11,6 +11,9 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,9 +46,13 @@ fun InsightsScreen(
     val fiberGoal by profileViewModel.fiberGoal.collectAsState()
     val waterGoal by profileViewModel.waterGoal.collectAsState()
     val waterLogged by profileViewModel.waterLogged.collectAsState()
+    val userName by profileViewModel.userName.collectAsState()
+    val weightTrendSummary by profileViewModel.weightTrendSummary.collectAsState()
 
     var selectedRange by remember { mutableStateOf("7 days") }
     val rangeOptions = listOf("7 days", "30 days", "90 days")
+    var showExportDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Dynamic calculations for Today's Nutrition Quality (Strictly from user's logged data)
     val totalTodayProtein = dailyLogs.sumOf { it.protein.toDouble() }.toFloat()
@@ -79,6 +86,123 @@ fun InsightsScreen(
         }
     }
 
+    if (showExportDialog) {
+        val rangeDays = when (selectedRange) {
+            "30 days" -> 30
+            "90 days" -> 90
+            else -> 7
+        }
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            containerColor = NutritrackSurface,
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(BrandGreenPill)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PictureAsPdf,
+                            contentDescription = null,
+                            tint = BrandGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = "Export Nutrition Report",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimary
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Download or share your logged nutrition, macros, and trend weight report for consultations with doctors, dietitians, or personal coaches.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+
+                    Surface(
+                        onClick = {
+                            showExportDialog = false
+                            val intent = com.example.macro_tracker.util.NutritionReportExporter.exportPdfReport(
+                                context = context,
+                                userName = userName,
+                                foodLogs = insightsLogs,
+                                summary = weightTrendSummary,
+                                rangeDays = rangeDays
+                            )
+                            if (intent != null) {
+                                com.example.macro_tracker.util.NutritionReportExporter.shareReport(context, intent)
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = NutritrackBg,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(28.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Clinical PDF Document", fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("Formatted A4 report with trend averages & tables", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            }
+                        }
+                    }
+
+                    Surface(
+                        onClick = {
+                            showExportDialog = false
+                            val intent = com.example.macro_tracker.util.NutritionReportExporter.exportCsvReport(
+                                context = context,
+                                userName = userName,
+                                foodLogs = insightsLogs,
+                                rangeDays = rangeDays
+                            )
+                            if (intent != null) {
+                                com.example.macro_tracker.util.NutritionReportExporter.shareReport(context, intent)
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = NutritrackBg,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NutritrackBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.TableChart, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(28.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Spreadsheet CSV File", fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("Raw data export for Excel, Google Sheets, or Apple Numbers", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showExportDialog = false }) {
+                    Text("Close", color = TextSecondary)
+                }
+            }
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = NutritrackBg,
@@ -96,40 +220,67 @@ fun InsightsScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Surface(
-                        onClick = onNavigateBack,
-                        shape = CircleShape,
-                        color = NutritrackSurface,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                contentDescription = "Back",
-                                tint = TextPrimary,
-                                modifier = Modifier.size(24.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            onClick = onNavigateBack,
+                            shape = CircleShape,
+                            color = NutritrackSurface,
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                                    contentDescription = "Back",
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                text = "Insights",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 22.sp
+                                ),
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Your nutrition trends",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                color = TextSecondary
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Insights",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp
-                            ),
-                            color = TextPrimary
+                    FilledTonalButton(
+                        onClick = { showExportDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = BrandGreenPill,
+                            contentColor = BrandGreen
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = "Export Report",
+                            modifier = Modifier.size(16.dp),
+                            tint = BrandGreen
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Your nutrition trends",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                            color = TextSecondary
+                            text = "Export",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = BrandGreen
                         )
                     }
                 }
@@ -373,6 +524,16 @@ fun InsightsScreen(
                         }
                     }
                 }
+            }
+
+            // Weight Trend (MacroFactor EMA Smoothing)
+            item {
+                com.example.macro_tracker.ui.components.WeightTrendCard(
+                    summary = weightTrendSummary,
+                    onLogWeight = { weight, note ->
+                        profileViewModel.logWeight(weight, note)
+                    }
+                )
             }
 
             // Nutrition Quality Section
