@@ -9,6 +9,8 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.WriteBatch
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
@@ -49,6 +51,12 @@ class FirestoreRepositoryImpl(
     private val firestore: FirebaseFirestore by lazy {
         firestoreInstance ?: FirebaseFirestore.getInstance()
     }
+
+    private val syncMutex = Mutex()
+    @Volatile
+    private var lastSyncUserId: String? = null
+    @Volatile
+    private var lastSyncTimeMs: Long = 0L
 
     companion object {
         private const val TAG = "FirestoreRepository"
@@ -136,7 +144,7 @@ class FirestoreRepositoryImpl(
             val data = hashMapOf(
                 "id" to foodLog.id,
                 "foodName" to foodLog.foodName,
-                "calories" to foodLog.calories.toDouble(),
+                "calories" to foodLog.calories,
                 "protein" to foodLog.protein.toDouble(),
                 "carbs" to foodLog.carbs.toDouble(),
                 "fat" to foodLog.fat.toDouble(),
@@ -282,18 +290,31 @@ class FirestoreRepositoryImpl(
 
             val logs = snapshot.documents.mapNotNull { doc ->
                 try {
-                    val id = (doc.getLong("id") ?: 0L).toInt()
-                    val foodName = doc.getString("foodName") ?: return@mapNotNull null
-                    val calories = (doc.getLong("calories") ?: 0L).toInt()
-                    val protein = (doc.getDouble("protein") ?: 0.0).toFloat()
-                    val carbs = (doc.getDouble("carbs") ?: 0.0).toFloat()
-                    val fat = (doc.getDouble("fat") ?: 0.0).toFloat()
-                    val fiber = (doc.getDouble("fiber") ?: 0.0).toFloat()
-                    val servings = (doc.getLong("servings") ?: 1L).toInt().coerceAtLeast(1)
-                    val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
-                    val mealType = doc.getString("mealType") ?: "Breakfast"
+                    val id = (doc.get("id") as? Number)?.toInt() ?: 0
+                    val foodName = doc.getString("foodName")?.trim() ?: return@mapNotNull null
+                    if (foodName.isBlank()) return@mapNotNull null
+                    val calories = (doc.get("calories") as? Number)?.toInt() ?: 0
+                    val protein = (doc.get("protein") as? Number)?.toFloat() ?: 0f
+                    val carbs = (doc.get("carbs") as? Number)?.toFloat() ?: 0f
+                    val fat = (doc.get("fat") as? Number)?.toFloat() ?: 0f
+                    val fiber = (doc.get("fiber") as? Number)?.toFloat() ?: 0f
+                    val servings = (doc.get("servings") as? Number)?.toInt()?.coerceAtLeast(1) ?: 1
+
+                    val rawTimestamp = doc.get("timestamp")
+                    val timestamp = when (rawTimestamp) {
+                        is Number -> rawTimestamp.toLong()
+                        is com.google.firebase.Timestamp -> rawTimestamp.toDate().time
+                        is String -> rawTimestamp.toLongOrNull()
+                        else -> null
+                    } ?: run {
+                        // Extract timestamp from docId format: log_{timestamp}_{nameHash}
+                        val parts = doc.id.split("_")
+                        if (parts.size >= 2) parts[1].toLongOrNull() else null
+                    } ?: 0L
+
+                    val mealType = doc.getString("mealType")?.trim()?.ifBlank { "Breakfast" } ?: "Breakfast"
                     val details = doc.getString("details") ?: ""
-                    val weightGrams = (doc.getDouble("weightGrams") ?: 100.0).toFloat()
+                    val weightGrams = (doc.get("weightGrams") as? Number)?.toFloat() ?: 100f
 
                     FoodLogEntity(
                         id = id,
@@ -311,6 +332,7 @@ class FirestoreRepositoryImpl(
                         details = details
                     )
                 } catch (e: Exception) {
+                    Log.w(TAG, "Skipping malformed food log doc: ${doc.id}", e)
                     null
                 }
             }
@@ -341,7 +363,7 @@ class FirestoreRepositoryImpl(
                     val data = hashMapOf(
                         "id" to log.id,
                         "foodName" to log.foodName,
-                        "calories" to log.calories.toDouble(),
+                        "calories" to log.calories,
                         "protein" to log.protein.toDouble(),
                         "carbs" to log.carbs.toDouble(),
                         "fat" to log.fat.toDouble(),
@@ -376,75 +398,142 @@ class FirestoreRepositoryImpl(
         if (userId.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("User ID cannot be blank"))
         }
-        try {
-            // 1. Fetch & Restore Remote Profile
-            val profileSnapshot = firestore.collection(USERS_COLLECTION)
-                .document(userId)
-                .get()
-                .await()
 
-            if (profileSnapshot.exists() && userProfileManager != null) {
-                val data = profileSnapshot.data ?: emptyMap()
-                val name = (data["name"] ?: data["displayName"]) as? String
-                if (!name.isNullOrBlank()) userProfileManager.saveUserName(name)
+        syncMutex.withLock {
+            val now = System.currentTimeMillis()
+            if (lastSyncUserId == userId && (now - lastSyncTimeMs) < 2500L) {
+                Log.d(TAG, "Skipping duplicate concurrent sync for $userId (last synced ${(now - lastSyncTimeMs)}ms ago)")
+                return@withContext Result.success(Unit)
+            }
 
-                (data["email"] as? String)?.let { if (it.isNotBlank()) userProfileManager.saveUserGmail(it) }
-                (data["dietaryPreference"] as? String)?.let { userProfileManager.saveDietaryPreference(it) }
-                (data["activityLevel"] as? String)?.let { userProfileManager.saveActivityLevel(it) }
+            try {
+                // 1. Fetch & Restore Remote Profile
+                val profileSnapshot = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .get()
+                    .await()
 
-                val cal = (data["calorieTarget"] ?: data["calorieGoal"]) as? Number
-                val prot = (data["proteinTarget"] ?: data["proteinGoal"]) as? Number
-                val carbs = (data["carbsTarget"] ?: data["carbsGoal"]) as? Number
-                val fat = (data["fatTarget"] ?: data["fatGoal"]) as? Number
-                val rawWater = (data["waterTarget"] ?: data["waterGoal"]) as? Number
-                val fiber = (data["fiberTarget"] ?: data["fiberGoal"]) as? Number
-                if (cal != null && prot != null && carbs != null && fat != null && rawWater != null) {
-                    val rawWaterFloat = rawWater.toFloat()
-                    val water = if (rawWaterFloat > 30f) rawWaterFloat / 1000f else rawWaterFloat
-                    userProfileManager.saveGoals(cal.toInt(), prot.toInt(), carbs.toInt(), fat.toInt(), water, fiber?.toInt() ?: 25)
+                if (profileSnapshot.exists() && userProfileManager != null) {
+                    val data = profileSnapshot.data ?: emptyMap()
+                    val name = (data["name"] ?: data["displayName"]) as? String
+                    if (!name.isNullOrBlank()) userProfileManager.saveUserName(name)
+
+                    (data["email"] as? String)?.let { if (it.isNotBlank()) userProfileManager.saveUserGmail(it) }
+                    (data["dietaryPreference"] as? String)?.let { userProfileManager.saveDietaryPreference(it) }
+                    (data["activityLevel"] as? String)?.let { userProfileManager.saveActivityLevel(it) }
+
+                    val cal = (data["calorieTarget"] ?: data["calorieGoal"]) as? Number
+                    val prot = (data["proteinTarget"] ?: data["proteinGoal"]) as? Number
+                    val carbs = (data["carbsTarget"] ?: data["carbsGoal"]) as? Number
+                    val fat = (data["fatTarget"] ?: data["fatGoal"]) as? Number
+                    val rawWater = (data["waterTarget"] ?: data["waterGoal"]) as? Number
+                    val fiber = (data["fiberTarget"] ?: data["fiberGoal"]) as? Number
+                    if (cal != null && prot != null && carbs != null && fat != null && rawWater != null) {
+                        val rawWaterFloat = rawWater.toFloat()
+                        val water = if (rawWaterFloat > 30f) rawWaterFloat / 1000f else rawWaterFloat
+                        userProfileManager.saveGoals(cal.toInt(), prot.toInt(), carbs.toInt(), fat.toInt(), water, fiber?.toInt() ?: 25)
+                    }
+
+                    val weight = (data["weightKg"] ?: data["userWeightKg"]) as? Number
+                    val height = (data["heightCm"] ?: data["userHeightCm"]) as? Number
+                    val goal = (data["fitnessGoal"] ?: data["userFitnessGoal"]) as? String
+                    if (weight != null && height != null && goal != null) {
+                        userProfileManager.saveBodyStats(weight.toFloat(), height.toFloat(), goal)
+                    }
                 }
 
-                val weight = (data["weightKg"] ?: data["userWeightKg"]) as? Number
-                val height = (data["heightCm"] ?: data["userHeightCm"]) as? Number
-                val goal = (data["fitnessGoal"] ?: data["userFitnessGoal"]) as? String
-                if (weight != null && height != null && goal != null) {
-                    userProfileManager.saveBodyStats(weight.toFloat(), height.toFloat(), goal)
+                // 2. Fetch Remote Food Logs History
+                val remoteLogsResult = getUserFoodLogs(userId)
+                val rawRemoteLogs = remoteLogsResult.getOrNull() ?: emptyList()
+
+                // Deduplicate remote logs (group by 30-sec window + name + mealType + calories)
+                val deduplicatedRemote = rawRemoteLogs.distinctBy { log ->
+                    val cleanName = log.foodName.trim().lowercase()
+                    val cleanMeal = log.mealType.trim().lowercase()
+                    val timeBucket = log.timestamp / 30000L
+                    "${timeBucket}_${cleanName}_${cleanMeal}_${log.calories}"
                 }
+
+                // 3. Fetch Local Food Logs for this userId ONLY
+                val currentLocalLogs = foodLogDao.getAllFoodLogsList(userId)
+
+                // 4. Deduplicate existing local database logs if duplicates already exist from previous bug
+                val localGroups = currentLocalLogs.groupBy { local ->
+                    val cleanName = local.foodName.trim().lowercase()
+                    val cleanMeal = local.mealType.trim().lowercase()
+                    val timeBucket = local.timestamp / 30000L
+                    "${timeBucket}_${cleanName}_${cleanMeal}_${local.calories}"
+                }
+
+                val cleanedLocalLogs = mutableListOf<FoodLogEntity>()
+                val duplicatesToDelete = mutableListOf<FoodLogEntity>()
+
+                for ((_, group) in localGroups) {
+                    if (group.size > 1) {
+                        val sortedGroup = group.sortedBy { it.id }
+                        cleanedLocalLogs.add(sortedGroup.first())
+                        duplicatesToDelete.addAll(sortedGroup.drop(1))
+                    } else {
+                        cleanedLocalLogs.add(group.first())
+                    }
+                }
+
+                if (duplicatesToDelete.isNotEmpty()) {
+                    Log.d(TAG, "Purging ${duplicatesToDelete.size} duplicate local food logs for user $userId")
+                    for (dup in duplicatesToDelete) {
+                        foodLogDao.deleteFoodLog(dup)
+                    }
+                }
+
+                // 5. Insert Missing Remote Logs into Local Database
+                val localKeys = cleanedLocalLogs.map { local ->
+                    val cleanName = local.foodName.trim().lowercase()
+                    val cleanMeal = local.mealType.trim().lowercase()
+                    val timeBucket = local.timestamp / 30000L
+                    "${timeBucket}_${cleanName}_${cleanMeal}_${local.calories}"
+                }.toSet()
+
+                val missingFromLocal = deduplicatedRemote.filter { remote ->
+                    val cleanName = remote.foodName.trim().lowercase()
+                    val cleanMeal = remote.mealType.trim().lowercase()
+                    val timeBucket = remote.timestamp / 30000L
+                    "${timeBucket}_${cleanName}_${cleanMeal}_${remote.calories}" !in localKeys
+                }.map { it.copy(id = 0, userId = userId) }
+
+                if (missingFromLocal.isNotEmpty()) {
+                    foodLogDao.insertAll(missingFromLocal)
+                    Log.d(TAG, "Restored ${missingFromLocal.size} remote food logs into local database for $userId")
+                }
+
+                // 6. Upload any local logs belonging to this user missing from remote to Firestore
+                val remoteKeys = deduplicatedRemote.map { remote ->
+                    val cleanName = remote.foodName.trim().lowercase()
+                    val cleanMeal = remote.mealType.trim().lowercase()
+                    val timeBucket = remote.timestamp / 30000L
+                    "${timeBucket}_${cleanName}_${cleanMeal}_${remote.calories}"
+                }.toSet()
+
+                val missingFromRemote = cleanedLocalLogs.filter { local ->
+                    local.userId == userId && run {
+                        val cleanName = local.foodName.trim().lowercase()
+                        val cleanMeal = local.mealType.trim().lowercase()
+                        val timeBucket = local.timestamp / 30000L
+                        "${timeBucket}_${cleanName}_${cleanMeal}_${local.calories}" !in remoteKeys
+                    }
+                }
+
+                if (missingFromRemote.isNotEmpty()) {
+                    syncAllFoodLogsToFirestore(userId, missingFromRemote)
+                    Log.d(TAG, "Uploaded ${missingFromRemote.size} offline food logs to Firestore for $userId")
+                }
+
+                lastSyncUserId = userId
+                lastSyncTimeMs = System.currentTimeMillis()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in bidirectional history synchronization", e)
+                Result.failure(e)
             }
-
-            // 2. Fetch Remote Food Logs History
-            val remoteLogsResult = getUserFoodLogs(userId)
-            val remoteLogs = remoteLogsResult.getOrNull() ?: emptyList()
-
-            // 3. Fetch Local Food Logs for this userId ONLY
-            val localLogs = foodLogDao.getAllFoodLogsList(userId)
-            val localTimestamps = localLogs.map { "${it.timestamp}_${it.foodName.trim().lowercase()}" }.toSet()
-
-            // 4. Insert Missing Remote Logs into Local Database with userId
-            val missingFromLocal = remoteLogs.filter { remote ->
-                val key = "${remote.timestamp}_${remote.foodName.trim().lowercase()}"
-                key !in localTimestamps
-            }.map { it.copy(id = 0, userId = userId) } // let Room assign local auto IDs, strictly scoped to userId
-
-            if (missingFromLocal.isNotEmpty()) {
-                foodLogDao.insertAll(missingFromLocal)
-                Log.d(TAG, "Restored ${missingFromLocal.size} remote food logs into local database for $userId")
-            }
-
-            // 5. Upload any local logs belonging to this user missing from remote to Firestore
-            val remoteTimestamps = remoteLogs.map { "${it.timestamp}_${it.foodName.trim().lowercase()}" }.toSet()
-            val missingFromRemote = localLogs.filter { local ->
-                local.userId == userId && "${local.timestamp}_${local.foodName.trim().lowercase()}" !in remoteTimestamps
-            }
-            if (missingFromRemote.isNotEmpty()) {
-                syncAllFoodLogsToFirestore(userId, missingFromRemote)
-                Log.d(TAG, "Uploaded ${missingFromRemote.size} offline food logs to Firestore for $userId")
-            }
-
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in bidirectional history synchronization", e)
-            Result.failure(e)
         }
     }
 

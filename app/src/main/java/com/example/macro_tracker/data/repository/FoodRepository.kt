@@ -81,6 +81,19 @@ class FoodRepositoryImpl(
     )
     override val currentUserIdFlow: StateFlow<String?> = _currentUserIdFlow.asStateFlow()
 
+    init {
+        try {
+            FirebaseAuth.getInstance().addAuthStateListener { auth ->
+                val user = auth.currentUser
+                if (user != null && !user.isAnonymous && !user.uid.startsWith("guest_")) {
+                    _currentUserIdFlow.value = user.uid
+                } else {
+                    _currentUserIdFlow.value = null
+                }
+            }
+        } catch (ignored: Exception) {}
+    }
+
     override fun setActiveUser(userId: String?) {
         val cleanId = userId?.trim()?.ifBlank { null }
         if (cleanId != null && (cleanId.startsWith("guest_") || cleanId == "guest")) {

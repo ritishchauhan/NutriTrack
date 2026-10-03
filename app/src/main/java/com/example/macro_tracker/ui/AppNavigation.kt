@@ -108,7 +108,6 @@ fun AppNavigation(
                 backStack.add(AuthRoute)
             }
         } else {
-            foodViewModel.refreshData()
             if (backStack.lastOrNull() == AuthRoute || backStack.lastOrNull() == SplashRoute) {
                 backStack.clear()
                 backStack.add(DashboardRoute)
