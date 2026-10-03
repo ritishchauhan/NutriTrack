@@ -1,7 +1,7 @@
 # Nutritrack 🥗
 ### Intelligent Macro Tracker, Calorie Counter & Nutrition Planner for Android
 
-[![Version](https://img.shields.io/badge/Version-1.03-059669.svg?logo=android&logoColor=white)](https://github.com/ritishchauhan/NutriTrack/releases)
+[![Version](https://img.shields.io/badge/Version-1.04-059669.svg?logo=android&logoColor=white)](https://github.com/ritishchauhan/NutriTrack/releases)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.00-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%203-Botanical%20Emerald-059669.svg)](https://m3.material.io)

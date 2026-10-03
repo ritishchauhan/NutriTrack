@@ -21,8 +21,8 @@ android {
         applicationId = "com.example.macro_tracker"
         minSdk = 29
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.03"
+        versionCode = 4
+        versionName = "1.04"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
