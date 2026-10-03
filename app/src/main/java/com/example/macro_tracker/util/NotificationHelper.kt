@@ -6,7 +6,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -115,33 +114,22 @@ object NotificationHelper {
         )
 
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_banner_collapsed).apply {
-            setTextViewText(R.id.notif_collapsed_badge, "WELCOME 🥗")
+            setTextViewText(R.id.notif_collapsed_badge, "WELCOME")
             setTextViewText(R.id.notif_collapsed_title, "Welcome to NutriTrack! 🥗")
             setTextViewText(R.id.notif_collapsed_message, "Your smart macro & calorie planner is ready.")
-            setImageViewResource(R.id.notif_collapsed_icon, R.drawable.app_logo)
         }
 
         val expandedView = RemoteViews(context.packageName, R.layout.notification_banner_expanded).apply {
-            setTextViewText(R.id.notif_expanded_badge, "✨ Intelligent Companion")
+            setTextViewText(R.id.notif_expanded_badge, "✨ Smart Companion")
             setTextViewText(R.id.notif_expanded_title, "Welcome to NutriTrack! 🥗")
             setTextViewText(R.id.notif_expanded_message, "Achieve your fitness goals with smart macro counting & curated recipes.")
-            setTextViewText(R.id.notif_btn_action, "Open NutriTrack 🚀")
+            setTextViewText(R.id.notif_btn_action, "Open NutriTrack ➔")
             setOnClickPendingIntent(R.id.notif_btn_action, pendingIntent)
-            setImageViewResource(R.id.notif_expanded_icon, R.drawable.app_logo)
-        }
-
-        val largeIcon = try {
-            BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
-        } catch (e: Exception) {
-            null
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID_WELCOME)
-            .setSmallIcon(R.drawable.app_logo)
-            .apply {
-                if (largeIcon != null) setLargeIcon(largeIcon)
-            }
-            .setColor(0xFF059669.toInt())
+            .setSmallIcon(R.drawable.ic_notification_stat)
+            .setColor(0xFF10B981.toInt())
             .setContentTitle("Welcome to NutriTrack! 🥗")
             .setContentText("Your intelligent macro tracker & calorie counter is ready. Tap to get started!")
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
@@ -189,16 +177,15 @@ object NotificationHelper {
         }
 
         val actionBtnText = when (channelId) {
-            CHANNEL_ID_WATER -> "Log Water 💧"
-            CHANNEL_ID_STREAK -> "Save Streak 🔥"
-            else -> "Log Meal 🥗"
+            CHANNEL_ID_WATER -> "Log Water ➔"
+            CHANNEL_ID_STREAK -> "Save Streak ➔"
+            else -> "Log Meal ➔"
         }
 
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_banner_collapsed).apply {
             setTextViewText(R.id.notif_collapsed_badge, badgeText)
             setTextViewText(R.id.notif_collapsed_title, title)
             setTextViewText(R.id.notif_collapsed_message, message)
-            setImageViewResource(R.id.notif_collapsed_icon, R.drawable.app_logo)
         }
 
         val expandedView = RemoteViews(context.packageName, R.layout.notification_banner_expanded).apply {
@@ -207,23 +194,13 @@ object NotificationHelper {
             setTextViewText(R.id.notif_expanded_message, message)
             setTextViewText(R.id.notif_btn_action, actionBtnText)
             setOnClickPendingIntent(R.id.notif_btn_action, pendingIntent)
-            setImageViewResource(R.id.notif_expanded_icon, R.drawable.app_logo)
-        }
-
-        val largeIcon = try {
-            BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
-        } catch (e: Exception) {
-            null
         }
 
         val isHighPriority = channelId == CHANNEL_ID_STREAK || channelId == CHANNEL_ID_MEALS
 
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.app_logo)
-            .apply {
-                if (largeIcon != null) setLargeIcon(largeIcon)
-            }
-            .setColor(0xFF059669.toInt())
+            .setSmallIcon(R.drawable.ic_notification_stat)
+            .setColor(0xFF10B981.toInt())
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())

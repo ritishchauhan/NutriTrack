@@ -6,22 +6,17 @@
     android:orientation="vertical"
     android:padding="14dp">
 
-    <!-- Header Row -->
+    <!-- Top rectangular header row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <ImageView
-            android:id="@+id/notif_expanded_icon"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/notification_icon_circle"
-            android:contentDescription="NutriTrack Icon"
-            android:padding="2dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/app_logo" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="14dp"
+            android:background="#10B981" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -29,7 +24,7 @@
             android:layout_marginStart="8dp"
             android:text="NutriTrack"
             android:textColor="#34D399"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -38,12 +33,21 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:background="@drawable/notification_chip_bg"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="1.5dp"
             android:text="✨ Smart Companion"
             android:textColor="#A7F3D0"
             android:textSize="10sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text="Active"
+            android:textColor="#64748B"
+            android:textSize="10.5sp" />
     </LinearLayout>
 
     <!-- Main Title -->
@@ -59,24 +63,32 @@
         android:textSize="15sp"
         android:textStyle="bold" />
 
-    <!-- Animated Flipper Section -->
-    <ViewFlipper
-        android:id="@+id/notif_view_flipper"
+    <!-- Rectangular Animated Ticker / Feature Box -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:autoStart="true"
-        android:flipInterval="3000"
-        android:inAnimation="@android:anim/fade_in"
-        android:outAnimation="@android:anim/fade_out">
+        android:layout_marginTop="8dp"
+        android:background="@drawable/notification_ticker_bg"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
-        <!-- Slide 1 -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <View
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:background="#10B981" />
+
+        <ViewFlipper
+            android:id="@+id/notif_view_flipper"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:autoStart="true"
+            android:flipInterval="3000"
+            android:inAnimation="@android:anim/fade_in"
+            android:outAnimation="@android:anim/fade_out">
 
+            <!-- Slide 1 -->
             <TextView
                 android:id="@+id/notif_slide_1_text"
                 android:layout_width="match_parent"
@@ -84,68 +96,47 @@
                 android:text="🥗 Track calories, protein, carbs, fats &amp; hydration with ease."
                 android:textColor="#E2E8F0"
                 android:textSize="12sp" />
-        </LinearLayout>
 
-        <!-- Slide 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
+            <!-- Slide 2 -->
             <TextView
                 android:id="@+id/notif_slide_2_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="⚡ Barcode Scanner, Indian Kitchen Recipes &amp; Custom Meal Builder."
+                android:text="⚡ Barcode Scanner, Indian Recipes &amp; Custom Meal Builder."
                 android:textColor="#A7F3D0"
                 android:textSize="12sp" />
-        </LinearLayout>
 
-        <!-- Slide 3 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
+            <!-- Slide 3 -->
             <TextView
                 android:id="@+id/notif_slide_3_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📈 3-Month Future Weight Prediction &amp; Cloud Multi-Device Sync."
+                android:text="📈 3-Month Future Weight Prediction &amp; Multi-Device Sync."
                 android:textColor="#6EE7B7"
                 android:textSize="12sp" />
-        </LinearLayout>
 
-        <!-- Slide 4 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
+            <!-- Slide 4 -->
             <TextView
                 android:id="@+id/notif_slide_4_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🔥 Build streaks, conquer your diet goals &amp; stay fit every day!"
+                android:text="🔥 Build streaks, conquer diet goals &amp; stay fit every day!"
                 android:textColor="#FDE047"
                 android:textSize="12sp" />
-        </LinearLayout>
-    </ViewFlipper>
+        </ViewFlipper>
+    </LinearLayout>
 
-    <!-- Subtitle / Detail Text -->
+    <!-- Subtitle / Descriptive message -->
     <TextView
         android:id="@+id/notif_expanded_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="7dp"
         android:text="Tap below to explore your personalized dashboard and log your first meal."
         android:textColor="#94A3B8"
         android:textSize="11.5sp" />
 
-    <!-- Action Row -->
+    <!-- Action Row with Rectangular Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -157,12 +148,12 @@
             android:id="@+id/notif_btn_action"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/notification_pill_button"
+            android:background="@drawable/notification_rect_button"
             android:paddingHorizontal="14dp"
-            android:paddingVertical="5dp"
-            android:text="Open NutriTrack 🚀"
+            android:paddingVertical="6dp"
+            android:text="Open NutriTrack ➔"
             android:textColor="#FFFFFF"
-            android:textSize="11.5sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
