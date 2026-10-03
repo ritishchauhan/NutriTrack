@@ -1,6 +1,7 @@
 # Nutritrack 🥗
-### Intelligent Macro Tracker & Calorie Counter for Android
+### Intelligent Macro Tracker, Calorie Counter & Nutrition Planner for Android
 
+[![Version](https://img.shields.io/badge/Version-1.03-059669.svg?logo=android&logoColor=white)](https://github.com/ritishchauhan/NutriTrack/releases)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.00-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%203-Botanical%20Emerald-059669.svg)](https://m3.material.io)
@@ -11,7 +12,7 @@
 [![Firebase](https://img.shields.io/badge/Auth-Firebase%2033.9-FFCA28.svg?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Nutritrack** is a modern, high-performance Android nutrition and macro tracking application engineered with 100% **Jetpack Compose**, **Material 3**, and strict **MVVM (Model-View-ViewModel)** architecture. It empowers users to monitor their calories, protein, carbohydrates, fats, and fiber with intelligent tools including **Camera Barcode Scanning (ML Kit)**, **OpenFoodFacts Integration**, **Personalized Indian Diet Plans**, **100+ Authentic Indian Recipes**, and **Seamless Multi-Device Cloud Synchronization powered by Firebase Cloud Firestore and Room SQLite Local-First**.
+**Nutritrack** is a modern, high-performance Android nutrition and macro tracking application engineered with 100% **Jetpack Compose**, **Material 3**, and strict **MVVM (Model-View-ViewModel)** architecture. It empowers users to monitor their calories, protein, carbohydrates, fats, and fiber with intelligent tools including **Camera Barcode Scanning (ML Kit)**, **OpenFoodFacts Integration**, **Smart "My Meals" with Automatic Dish Detection & Ingredient Composite Calculator**, **Interactive Weight Trend & 3-Month Predictive Forecasting**, **Personalized Indian Diet Plans**, **100+ Authentic Indian Recipes**, and **Seamless Multi-Device Cloud Synchronization powered by Firebase Cloud Firestore and Room SQLite Local-First**.
 
 ---
 
@@ -35,18 +36,27 @@
   - Dedicated action buttons: **"Add to Daily Meals"** (commits to local Room DB and syncs with cloud) and **"Discard"** (closes without saving).
 - **Test Mode & Manual Fallback:** Quick-test chips and manual barcode entry for instant testing without physical packages.
 
-### 3. 🔍 Food Search & Custom Meal Logging
-- **OpenFoodFacts Global Search:** Live search across hundreds of thousands of branded and generic foods.
-- **Custom Quick-Add:** Log home-cooked meals by custom calories, protein, carbs, fat, and fiber values.
-- **Smart Filtering:** Categorize and inspect meals by Breakfast, Lunch, Dinner, and Snack.
-- **Log Management:** Swipe-to-delete and full meal history management with real-time cloud deletion.
+### 3. 🍽️ Smart "My Meals" & Intelligent Dish Nutrition Calculator
+- **Automated Dish Recognition (`DishDatabase`):** Type popular dishes (e.g. *Dal Tadka*, *Paneer Bhurji*, *Roti*, *Biryani*, *Poha*, *Khichdi*) and Nutritrack automatically calculates exact calories and macros based on portion weight in grams.
+- **Custom Ingredient Composite Calculator:** For unique or complex home-cooked meals, add individual ingredients (e.g. Oats, Milk, Peanut Butter, Chia Seeds) with portion weights; Nutritrack computes cumulative composite nutrition automatically.
+- **OpenFoodFacts Global Search:** Live search across hundreds of thousands of branded and generic foods with instant 1-tap logging.
+- **Smart Filtering:** Categorize and inspect meals by Breakfast, Lunch, Dinner, and Snacks.
+- **Serving Adjustments:** Real-time serving size increment/decrement controls with automatic macro scaling.
+- **Log Management:** Swipe-to-delete and full meal history management with real-time cloud sync.
 
-### 4. 💾 Local-First Architecture & OS Uninstall Data Retention
+### 4. 📈 Weight Trend Analysis & 3-Month Predictive Forecasting
+- **Smoothed Exponential Moving Average (EMA):** Eliminates deceptive day-to-day water weight fluctuations to reveal true metabolic progress.
+- **Interactive Canvas Historical Chart:** Smooth visual trajectory with zero-allocation rendering for 60fps/120fps responsiveness.
+- **Morning Weigh-in Logger:** Quick morning weigh-in logging with daily delta and streak tracking.
+- **Contextual Improvement Suggestions:** Real-time algorithmic advice based on current rate of change vs. fitness goal (e.g., healthy deficit maintenance, plateau warnings, surplus guidance).
+- **3-Month Goal-Driven Forecast:** Visual 3-month projection curve tailored for **Fat Loss** or **Muscle Gain** with customizable weekly pace (0.25 kg to 1.0 kg/week) and milestone targets.
+
+### 5. 💾 Local-First Architecture & OS Uninstall Data Retention
 - **Offline Cache & Room Storage:** 100% of user meal logs, daily macros, water tracking, streaks, and personal targets are cached locally on-device using Android Room (SQLite) and Jetpack DataStore for instant, zero-latency UI access.
 - **Data Security:** All tracked nutrition and health data is securely linked to the user's authenticated account and synced with Cloud Firestore.
 - **OS Uninstall Data Retention (`android:hasFragileUserData`):** When uninstalling or deleting the application from the device, the Android OS automatically prompts the user whether to keep or wipe their locally stored data, preventing accidental loss of nutritional history.
 
-### 5. ☁️ Multi-Device Cloud Sync (Firebase Cloud Firestore)
+### 6. ☁️ Multi-Device Cloud Sync (Firebase Cloud Firestore)
 - **Automatic Meal Sync:** Every logged meal is automatically synced and stored in **Cloud Firestore** under the authenticated user's ID document structure (`users/{userId}/tracked_meals/{mealId}`).
 - **Cross-Device & Account Switch Continuity:** Logging into an account on any new device or switching accounts automatically pulls full meal history and profile targets from Cloud Firestore, merging and restoring all macros and goals seamlessly.
 - **Resilient Offline-First Architecture:**
@@ -54,34 +64,40 @@
   - Cloud Firestore listeners sync background changes whenever network connectivity is active.
   - Granular document-level security rules enforce that users only access their own data.
 
-### 6. 🥗 Personalized Indian Diet Plans & Real-Time BMI
+### 7. 🥗 Personalized Indian Diet Plans & Real-Time BMI
 - **Dynamic BMI Calculator:** Input Weight (kg) and Height (cm) to calculate real-time BMI with colored category badges (Underweight, Normal, Overweight, Obese) and personalized health targets.
+- **Full-Day Meal Plans Matching User Goals:** Generates breakfast, lunch, snack, and dinner meal suggestions precisely calibrated to fulfill the user's exact daily caloric and protein targets (e.g. 150g protein goal).
 - **Goal-Driven Plans:** Tailored for **Lose Weight (Fat Loss)**, **Gain Muscle (Lean Bulk)**, and **Gain Weight (Healthy Bulk)**.
 - **Pure Veg & Non-Veg Plans:** Authentic Indian kitchen home-cooking meal plans with minimal oil (Palak Paneer, Moong Chilla, Dal Tadka, Soya Curry, Chicken Tikka, Egg Bhurji, etc.).
-- **Interactive Recipe Modals:** Clickable "How to Make (Recipe)" button below each meal showing prep time, exact Indian kitchen ingredients, and step-by-step cooking instructions with an instant **"Add to Today's Meals"** action.
+- **Interactive Recipe Modals:** Clickable "How to Make (Recipe)" button below each meal showing prep time, exact Indian kitchen ingredients, step-by-step cooking instructions, and an instant **"Add to Today's Meals"** action.
 
-### 7. 📖 100+ Indian Home-Cooking Recipes Section
+### 8. 📖 100+ Indian Home-Cooking Recipes Section
 - **Extensive Culinary Catalog:** 105+ authentic Indian home recipes with complete macros (Calories, Protein, Carbs, Fats, Fiber).
 - **Multi-Filter System:** Filter by All, Veg, Non-Veg, High-Protein, Breakfast, Lunch & Dinner, and Healthy Snacks & Smoothies.
 - **Full-Text Recipe Search:** Search instantly across recipe titles, ingredients (e.g. paneer, chicken, dal, oats, egg), and fitness tags.
 
-### 8. 🎯 Smart Goals & TDEE / Macro Calculator
+### 9. 🎯 Smart Goals & TDEE / Macro Calculator
 - **Custom Goal Setting:** Personalize calorie targets and macro distribution ratios.
 - **Biometric Calculations:** Automatic BMR and TDEE estimation based on age, gender, height, weight, and activity level.
 - **Insights & Analytics:** 7-day and 30-day rolling averages with zero-state safety (no skewed averages for newly installed apps).
 
-### 9. 🔐 Authentication First (Sign Up / Sign In Required)
+### 10. ⚡ High-Performance Optimization (Low-End to 120Hz Devices)
+- **Jetpack Compose Model Stability:** Domain models annotated with `@Immutable` to allow Compose to skip recomposition on unchanged cards during scrolling.
+- **Zero-Allocation Canvas Drawing:** Pre-computed path effects and single-pass min/max coordinates prevent GC pauses on low-memory devices.
+- **Hardware Acceleration & Large Heap:** Configured with `hardwareAccelerated="true"` and `largeHeap="true"` for maximum RenderThread throughput and GPU rasterization.
+
+### 11. 🔐 Authentication First (Sign Up / Sign In Required)
 - **Account Mandatory:** Users create an account or sign in before accessing the dashboard and features, ensuring all nutrition and macro data is securely preserved.
 - **Google Sign-In & Email/Password:** Fast one-tap Google Sign-In or secure Email & Password registration via Firebase Authentication.
 - **Clean Input Fields:** Specially styled high-contrast text fields with clear hints and password visibility toggles.
 - **Streamlined Settings:** Minimalist profile settings for user name, dietary preference, and activity level without UI clutter.
 
-### 10. ☕ Support the Developer ("Buy Dev a Coffee")
+### 12. ☕ Support the Developer ("Buy Dev a Coffee")
 - Accessible via the navigation drawer.
 - Single-tap Android UPI Intent integration (`ritishchauhan.in@oksbi`) supporting Google Pay, PhonePe, Paytm, BHIM, and any installed UPI banking app.
 
-### 11. 🎨 Justified Modern Bottom Navigation
-- **Balanced Distance:** Custom `Surface` navigation bar using `Modifier.weight(1f)` for mathematically identical, justified spacing between all 4 tabs (`Home`, `Log`, `Insights`, `Goals`).
+### 13. 🎨 Justified Modern Bottom Navigation
+- **Balanced Distance:** Custom `Surface` navigation bar using `Modifier.weight(1f)` for mathematically identical, justified spacing between all 4 tabs (`Home`, `My Meals`, `Insights`, `Goals`).
 - **Micro-Animations:** Translucent emerald capsule indicators with bouncy spring scale feedback on tab selection.
 - **Edge-to-Edge:** Native `WindowInsets.navigationBars` support.
 
