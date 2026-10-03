@@ -32,6 +32,7 @@ import com.example.macro_tracker.ui.theme.*
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.launch
 import com.example.macro_tracker.data.local.DietPlansData
 import com.example.macro_tracker.data.model.DailyDietPlan
@@ -838,7 +839,7 @@ fun FoodScreen(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "${String.format("%,d", totalCalories)} kcal",
+                            text = "${String.format(Locale.US, "%,d", totalCalories)} kcal",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 24.sp

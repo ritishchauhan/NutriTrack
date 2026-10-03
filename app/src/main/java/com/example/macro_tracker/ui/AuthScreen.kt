@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,11 +86,7 @@ fun AuthScreen(
     }
 
     // Setup Google Sign-In Client
-    val webClientId = try {
-        context.getString(R.string.default_web_client_id)
-    } catch (e: Exception) {
-        ""
-    }
+    val webClientId = stringResource(R.string.default_web_client_id)
 
     val googleSignInClient = remember(webClientId) {
         val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

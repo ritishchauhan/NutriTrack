@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.macro_tracker.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun GoalsScreen(
@@ -272,8 +273,8 @@ fun GoalsScreen(
                     // Calories Progress Card
                     ProgressTargetCard(
                         label = "Calories",
-                        current = String.format("%,d", totalCalories),
-                        target = String.format("%,d", calorieGoal),
+                        current = String.format(Locale.US, "%,d", totalCalories),
+                        target = String.format(Locale.US, "%,d", calorieGoal),
                         progress = calProgress,
                         color = BrandGreen
                     )
@@ -290,8 +291,8 @@ fun GoalsScreen(
                     // Water Progress Card (with tap to log +0.25L and -0.25L)
                     ProgressTargetCard(
                         label = "Water",
-                        current = String.format("%.1f", waterLogged),
-                        target = "${String.format("%.1f", waterGoal)} L",
+                        current = String.format(Locale.US, "%.1f", waterLogged),
+                        target = "${String.format(Locale.US, "%.1f", waterGoal)} L",
                         progress = waterProgress,
                         color = WaterColor,
                         onAddWater = { profileViewModel.addWater(0.25f) },

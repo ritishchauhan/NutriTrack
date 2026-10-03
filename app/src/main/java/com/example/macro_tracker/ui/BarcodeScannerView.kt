@@ -43,6 +43,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import java.util.Locale
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.example.macro_tracker.data.remote.Nutriments
@@ -397,6 +399,7 @@ fun BarcodeCameraScannerModal(
 /**
  * CameraX Viewfinder with ML Kit Barcode Analyzer and scanning overlay reticle.
  */
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraViewFinder(
     onBarcodeDetected: (String) -> Unit
@@ -579,7 +582,7 @@ fun CameraViewFinder(
                         .fillMaxWidth()
                         .height(2.dp)
                         .align(Alignment.TopCenter)
-                        .offset(y = (176 * laserOffsetY).dp)
+                        .offset { androidx.compose.ui.unit.IntOffset(0, (176.dp.toPx() * laserOffsetY).roundToInt()) }
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
@@ -830,25 +833,25 @@ fun ScannedFoodDetailModal(
                 ) {
                     MacroDetailPill(
                         label = "Protein",
-                        value = "${String.format("%.1f", currentPro)}g",
+                        value = "${String.format(Locale.US, "%.1f", currentPro)}g",
                         color = Color(0xFF3B82F6),
                         modifier = Modifier.weight(1f)
                     )
                     MacroDetailPill(
                         label = "Carbs",
-                        value = "${String.format("%.1f", currentCarbs)}g",
+                        value = "${String.format(Locale.US, "%.1f", currentCarbs)}g",
                         color = EnergyAmber,
                         modifier = Modifier.weight(1f)
                     )
                     MacroDetailPill(
                         label = "Fat",
-                        value = "${String.format("%.1f", currentFat)}g",
+                        value = "${String.format(Locale.US, "%.1f", currentFat)}g",
                         color = Color(0xFFEF4444),
                         modifier = Modifier.weight(1f)
                     )
                     MacroDetailPill(
                         label = "Fiber",
-                        value = "${String.format("%.1f", currentFiber)}g",
+                        value = "${String.format(Locale.US, "%.1f", currentFiber)}g",
                         color = BrandGreen,
                         modifier = Modifier.weight(1f)
                     )

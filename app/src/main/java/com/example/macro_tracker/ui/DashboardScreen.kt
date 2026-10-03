@@ -358,7 +358,7 @@ fun DashboardScreen(
                             val subtitleText = when {
                                 selectedDate != LocalDate.now() -> "Viewing past meal log • Tap 'Today' to return"
                                 totalCalories == 0 -> "Let's fuel your day with mindful nutrition"
-                                caloriesLeft > 0 -> "${String.format(Locale.getDefault(), "%,d", caloriesLeft)} kcal left to hit daily goal"
+                                caloriesLeft > 0 -> "${String.format(Locale.US, "%,d", caloriesLeft)} kcal left to hit daily goal"
                                 else -> "🎯 Daily calorie goal reached! Great job!"
                             }
                             Text(
@@ -488,7 +488,7 @@ fun DashboardScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                                 ) {
                                     Text(
-                                        text = "💧 ${String.format(Locale.getDefault(), "%.1f", waterLogged)}L / ${String.format(Locale.getDefault(), "%.1f", waterGoal)}L",
+                                        text = "💧 ${String.format(Locale.US, "%.1f", waterLogged)}L / ${String.format(Locale.US, "%.1f", waterGoal)}L",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp
@@ -545,7 +545,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = String.format(Locale.getDefault(), "%,d", totalCalories),
+                                    text = String.format(Locale.US, "%,d", totalCalories),
                                     style = MaterialTheme.typography.headlineLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 36.sp
@@ -559,7 +559,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "${String.format(Locale.getDefault(), "%,d", calorieGoal)} kcal goal",
+                                    text = "${String.format(Locale.US, "%,d", calorieGoal)} kcal goal",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                                     color = TextSecondary
                                 )

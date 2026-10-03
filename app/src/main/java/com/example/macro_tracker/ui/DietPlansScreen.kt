@@ -34,6 +34,7 @@ import com.example.macro_tracker.data.local.RecipesData
 import com.example.macro_tracker.data.model.*
 import com.example.macro_tracker.ui.theme.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -937,7 +938,7 @@ fun BmiDisplayBadge(bmi: Float) {
                     )
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = String.format("%.1f", bmi),
+                            text = String.format(Locale.US, "%.1f", bmi),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 32.sp
@@ -1487,7 +1488,7 @@ fun TargetNutritionCard(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    val proteinRatio = if (weightKg > 0) String.format("%.1f", targetProtein / weightKg) else "2.0"
+                    val proteinRatio = if (weightKg > 0) String.format(Locale.US, "%.1f", targetProtein / weightKg) else "2.0"
                     Text(
                         text = "Anchor: ${proteinRatio}g / kg bodyweight",
                         style = MaterialTheme.typography.bodySmall.copy(
@@ -1552,7 +1553,7 @@ fun TargetNutritionCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "💧 Water (BMI ${String.format("%.1f", bmi)}): ",
+                            text = "💧 Water (BMI ${String.format(Locale.US, "%.1f", bmi)}): ",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp

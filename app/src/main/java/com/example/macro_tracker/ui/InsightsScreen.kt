@@ -362,7 +362,7 @@ fun InsightsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "${String.format("%,d", avgCalories)} kcal",
+                                text = "${String.format(Locale.US, "%,d", avgCalories)} kcal",
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 26.sp
@@ -583,7 +583,7 @@ fun InsightsScreen(
                     NutritionQualityCard(
                         title = "Water",
                         percent = waterPercent,
-                        target = "${String.format("%.1f", waterLogged)}L / ${String.format("%.1f", waterGoal)}L",
+                        target = "${String.format(Locale.US, "%.1f", waterLogged)}L / ${String.format(Locale.US, "%.1f", waterGoal)}L",
                         color = WaterColor,
                         bgColor = FatBg,
                         progress = (waterPercent / 100f).coerceIn(0f, 1f)

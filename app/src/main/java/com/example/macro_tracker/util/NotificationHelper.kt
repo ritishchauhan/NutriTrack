@@ -25,37 +25,35 @@ object NotificationHelper {
     const val NOTIF_ID_STREAK = 1005
 
     fun createNotificationChannels(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            val mealsChannel = NotificationChannel(
-                CHANNEL_ID_MEALS,
-                "Meal Reminders",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Daily breakfast, lunch, and dinner logging prompts"
-                enableVibration(true)
-            }
-
-            val waterChannel = NotificationChannel(
-                CHANNEL_ID_WATER,
-                "Hydration Reminders",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Friendly hydration and water intake reminders"
-            }
-
-            val streakChannel = NotificationChannel(
-                CHANNEL_ID_STREAK,
-                "Streak Saver Alerts",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Alerts to help you keep your daily tracking streak alive"
-                enableVibration(true)
-            }
-
-            notificationManager.createNotificationChannels(listOf(mealsChannel, waterChannel, streakChannel))
+        val mealsChannel = NotificationChannel(
+            CHANNEL_ID_MEALS,
+            "Meal Reminders",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Daily breakfast, lunch, and dinner logging prompts"
+            enableVibration(true)
         }
+
+        val waterChannel = NotificationChannel(
+            CHANNEL_ID_WATER,
+            "Hydration Reminders",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Friendly hydration and water intake reminders"
+        }
+
+        val streakChannel = NotificationChannel(
+            CHANNEL_ID_STREAK,
+            "Streak Saver Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Alerts to help you keep your daily tracking streak alive"
+            enableVibration(true)
+        }
+
+        notificationManager.createNotificationChannels(listOf(mealsChannel, waterChannel, streakChannel))
     }
 
     fun showReminderNotification(

@@ -31,7 +31,7 @@ fun AdjustMealQuantityDialog(
 ) {
     val initialWeight = if (log.weightGrams > 0f) log.weightGrams else 100f
     var weightInput by remember { mutableStateOf(initialWeight.toInt().toString()) }
-    var currentWeight by remember { mutableStateOf(initialWeight) }
+    var currentWeight by remember { mutableFloatStateOf(initialWeight) }
     var isError by remember { mutableStateOf(false) }
 
     val baseWeight = if (log.weightGrams > 0f) log.weightGrams else 100f
