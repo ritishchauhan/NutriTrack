@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,14 +24,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import com.example.macro_tracker.R
 import com.example.macro_tracker.data.local.FoodLogEntity
 import com.example.macro_tracker.ui.theme.*
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +50,6 @@ fun DashboardScreen(
     val dailyLogs by foodViewModel.dailyFoodLogsLiveData.observeAsState(emptyList())
     val selectedDate by foodViewModel.selectedDateLiveData.observeAsState(LocalDate.now())
     val userName by profileViewModel.userNameLiveData.observeAsState("")
-    val onboardingCompleted by profileViewModel.onboardingCompletedLiveData.observeAsState(false)
-    val isProfileLoaded by profileViewModel.isProfileLoadedLiveData.observeAsState(false)
 
     val calorieGoal by profileViewModel.calorieGoalLiveData.observeAsState(2000)
     val proteinGoal by profileViewModel.proteinGoalLiveData.observeAsState(120)
@@ -358,7 +358,7 @@ fun DashboardScreen(
                             val subtitleText = when {
                                 selectedDate != LocalDate.now() -> "Viewing past meal log • Tap 'Today' to return"
                                 totalCalories == 0 -> "Let's fuel your day with mindful nutrition"
-                                caloriesLeft > 0 -> "${String.format("%,d", caloriesLeft)} kcal left to hit daily goal"
+                                caloriesLeft > 0 -> "${String.format(Locale.getDefault(), "%,d", caloriesLeft)} kcal left to hit daily goal"
                                 else -> "🎯 Daily calorie goal reached! Great job!"
                             }
                             Text(
@@ -488,7 +488,7 @@ fun DashboardScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                                 ) {
                                     Text(
-                                        text = "💧 ${String.format("%.1f", waterLogged)}L",
+                                        text = "💧 ${String.format(Locale.getDefault(), "%.1f", waterLogged)}L / ${String.format(Locale.getDefault(), "%.1f", waterGoal)}L",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp
@@ -545,7 +545,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = String.format("%,d", totalCalories),
+                                    text = String.format(Locale.getDefault(), "%,d", totalCalories),
                                     style = MaterialTheme.typography.headlineLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 36.sp
@@ -559,7 +559,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "${String.format("%,d", calorieGoal)} kcal goal",
+                                    text = "${String.format(Locale.getDefault(), "%,d", calorieGoal)} kcal goal",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                                     color = TextSecondary
                                 )
@@ -771,7 +771,7 @@ fun DashboardScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = BrandGreen,
                                 modifier = Modifier.size(18.dp)
@@ -1157,7 +1157,7 @@ fun DashboardMealItem(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (log.details.isNotBlank()) log.details else "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g",
+                        text = log.details.ifBlank { "P ${log.protein.toInt()}g • C ${log.carbs.toInt()}g • F ${log.fat.toInt()}g" },
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                         color = TextSecondary,
                         maxLines = 1,
