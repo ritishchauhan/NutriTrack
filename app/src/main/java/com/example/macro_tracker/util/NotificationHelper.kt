@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.macro_tracker.MainActivity
 import com.example.macro_tracker.R
@@ -28,7 +29,7 @@ object NotificationHelper {
     const val NOTIF_ID_STREAK = 1005
 
     private const val PREFS_NAME = "nutritrack_notif_prefs"
-    private const val KEY_WELCOME_SENT = "has_sent_welcome_notification_v1"
+    private const val KEY_WELCOME_SENT = "has_sent_welcome_banner_v2"
 
     fun createNotificationChannels(context: Context) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -99,6 +100,7 @@ object NotificationHelper {
      * Forces sending the animated welcome notification (useful for first install or testing).
      */
     fun showWelcomeNotification(context: Context): Boolean {
+        createNotificationChannels(context)
         if (!hasNotificationPermission(context)) return false
 
         val launchIntent = Intent(context, MainActivity::class.java).apply {
@@ -142,7 +144,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = NotificationManagerCompat.from(context)
         notificationManager.notify(NOTIF_ID_WELCOME, builder.build())
         return true
     }
@@ -157,6 +159,7 @@ object NotificationHelper {
         message: String,
         channelId: String = CHANNEL_ID_MEALS
     ) {
+        createNotificationChannels(context)
         if (!hasNotificationPermission(context)) return
 
         val launchIntent = Intent(context, MainActivity::class.java).apply {
@@ -211,16 +214,17 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = NotificationManagerCompat.from(context)
         notificationManager.notify(notificationId, builder.build())
     }
 
-    private fun hasNotificationPermission(context: Context): Boolean {
+    fun hasNotificationPermission(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) ==
+            val granted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED
+            if (!granted) return false
         }
-        return true
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 }
 
