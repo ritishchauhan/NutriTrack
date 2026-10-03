@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,14 @@ import com.example.macro_tracker.ui.theme.Macro_trackerTheme
  */
 class MainActivity : ComponentActivity() {
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            com.example.macro_tracker.util.NotificationHelper.triggerWelcomeNotificationIfFirstTime(this)
+        }
+    }
+
     private val foodViewModel: FoodViewModel by viewModels {
         AppViewModelProvider.Factory
     }
@@ -39,6 +48,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermission()
+        com.example.macro_tracker.util.NotificationHelper.triggerWelcomeNotificationIfFirstTime(this)
         setContent {
             val themeMode by profileViewModel.themeModeLiveData.observeAsState("SYSTEM")
             val isDark = when (themeMode) {
@@ -60,7 +70,7 @@ class MainActivity : ComponentActivity() {
     private fun requestNotificationPermission() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }

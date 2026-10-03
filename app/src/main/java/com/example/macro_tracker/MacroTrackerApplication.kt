@@ -22,6 +22,7 @@ class MacroTrackerApplication : Application(), ImageLoaderFactory {
         container = DefaultAppContainer(this)
         com.example.macro_tracker.util.NotificationHelper.createNotificationChannels(this)
         com.example.macro_tracker.util.ReminderScheduler.scheduleAllReminders(this)
+        com.example.macro_tracker.util.NotificationHelper.triggerWelcomeNotificationIfFirstTime(this)
     }
 
     override fun newImageLoader(): ImageLoader {

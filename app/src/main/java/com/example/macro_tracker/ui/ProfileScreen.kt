@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.TableChart
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -322,6 +323,30 @@ fun ProfileDialog(
                             uncheckedTrackColor = NutritrackBg
                         )
                     )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        val sent = com.example.macro_tracker.util.NotificationHelper.showWelcomeNotification(context)
+                        if (!sent) {
+                            android.widget.Toast.makeText(context, "Please enable notification permissions to preview banner", android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(context, "Animated notification sent! Check your notification panel 🔔", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandGreen)
+                ) {
+                    Icon(
+                        Icons.Rounded.NotificationsActive,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Preview Animated Welcome Banner", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
 
                 // Data & Reports Section
